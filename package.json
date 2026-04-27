@@ -1,0 +1,6 @@
+{
+  "type": "module",
+  "dependencies": {
+    "music-metadata": "^11.12.3"
+  }
+}
