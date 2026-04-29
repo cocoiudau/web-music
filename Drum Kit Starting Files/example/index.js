@@ -9,29 +9,29 @@ let totalSongs = 0;
 function setPlayPauseIcon(isPlaying) {
   var btn = document.getElementById("playPauseBtn");
   btn.innerHTML = isPlaying
-    ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-pause-fill" viewBox="0 0 16 16">
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pause-fill" viewBox="0 0 16 16">
         <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5m5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5"/>
        </svg>`
-    : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
         <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"/>
        </svg>`;
 }
 function updatePlayBtn() {
-  const SVG_PLAY = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
-    <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"/>
-  </svg>`;
-  const SVG_PAUSE = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-pause-fill" viewBox="0 0 16 16">
-    <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5m5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5"/>
-  </svg>`;
-
   document.querySelectorAll(".song-item").forEach((item, i) => {
-    const btn = item.querySelector(".song-play-btn");
     if (i === currentIndex) {
       item.classList.add("is-playing");
-      if (btn) btn.innerHTML = currentAudio && !currentAudio.paused ? SVG_PAUSE : SVG_PLAY;
+      const btn = item.querySelector(".song-play-btn");
+      if (btn)
+        btn.innerHTML =
+          currentAudio && !currentAudio.paused
+            ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pause-fill" viewBox="0 0 16 16">
+      <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5m5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5"/>
+     </svg>`
+            : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
+      <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"/>
+     </svg>`;
     } else {
       item.classList.remove("is-playing");
-      if (btn) btn.innerHTML = SVG_PLAY; // Reset về icon play
     }
   });
 }
@@ -372,12 +372,37 @@ searchInput.addEventListener("input", () => {
   document.getElementById("searchHistory").style.display = "none";
   document.getElementById("searchResults").style.display = "block";
 
+  // Tìm local trước — không tốn quota
+  const matched = songs.filter((s) => s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q));
   const list = document.getElementById("resultList");
-  list.innerHTML = '<div class="search-empty">🔍 Đang tìm...</div>';
-  clearTimeout(searchDebounceTimer);
-  searchDebounceTimer = setTimeout(() => {
-    searchYouTube(q);
-  }, 800);
+
+  if (matched.length > 0) {
+    clearTimeout(searchDebounceTimer);
+    list.innerHTML = matched
+      .slice(0, 8)
+      .map((s) => {
+        const idx = songs.indexOf(s);
+        const img = `images/${s.file.replace("sounds/", "").replace(".mp3", ".jpg")}`;
+        return `
+          <div class="search-item" onclick="playFromSearch(${idx}, '${s.title}')">
+            <img src="${img}" onerror="this.style.display='none'" />
+            <div class="search-item-info">
+              <div class="search-item-title">${highlight(s.title, q)}</div>
+              <div class="search-item-artist">${highlight(s.artist, q)}</div>
+            </div>
+            <span class="search-item-play">▶</span>
+          </div>
+        `;
+      })
+      .join("");
+  } else {
+    // Không có local → debounce 800ms rồi mới gọi YouTube API
+    list.innerHTML = '<div class="search-empty">🔍 Đang tìm...</div>';
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      searchYouTube(q);
+    }, 800);
+  }
 });
 
 // Nhấn Enter → tìm ngay, không chờ debounce
