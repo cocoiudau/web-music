@@ -256,7 +256,7 @@ window.onpopstate = function (event) {
 };
 
 function setActive(el) {
-  document.querySelectorAll(".sidebar-menu a").forEach(function (a) {
+  document.querySelectorAll(".sidebar-menu a, .sidebar-playlist").forEach(function (a) {
     a.classList.remove("active");
   });
   el.classList.add("active");
@@ -658,3 +658,35 @@ document.addEventListener("click", function (e) {
     closeSettings();
   }
 });
+
+// ============================
+// LOGIN MODAL
+// ============================
+function openLoginModal() {
+  document.getElementById("loginModalOverlay").classList.add("active");
+  document.body.style.overflow = "hidden";
+}
+
+function closeLoginModal() {
+  document.getElementById("loginModalOverlay").classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") closeLoginModal();
+});
+
+// Toggle password visibility
+function togglePassword() {
+  const input = document.querySelector('.login-input[type="password"], .login-input[type="text"][data-pass]');
+  const eye = document.querySelector(".login-eye");
+  const passInput = document.getElementById("passwordInput");
+
+  if (passInput.type === "password") {
+    passInput.type = "text";
+    eye.textContent = "👁";
+  } else {
+    passInput.type = "password";
+    eye.textContent = "🙈";
+  }
+}
