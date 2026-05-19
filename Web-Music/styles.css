@@ -1559,3 +1559,126 @@ body {
 .user-btn:hover {
   background: rgba(155, 89, 182, 0.3);
 }
+
+/* ============================
+   TOP 100 PAGE
+   ============================ */
+.top100-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 0 10px;
+  user-select: none;
+}
+
+.top100-banner-text {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.top100-t,
+.top100-o,
+.top100-p {
+  font-size: 52px;
+  font-weight: 800;
+  color: #9b59b6;
+  letter-spacing: 10px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.top100-num {
+  font-size: 100px;
+  font-weight: 900;
+  color: transparent;
+  -webkit-text-stroke: 3px #9b59b6;
+  line-height: 1;
+  letter-spacing: -4px;
+}
+
+.top100-section {
+  padding: 16px 0 8px;
+}
+
+.top100-section-title {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 14px 0;
+  text-align: left;
+}
+
+.top100-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+.top100-card {
+  border-radius: 10px;
+  aspect-ratio: 3/2;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.top100-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.top100-card:hover .top100-card-overlay {
+  opacity: 1;
+}
+
+.top100-card-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.top100-card-label span:first-child {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 3px;
+}
+
+.top100-card-num {
+  font-size: 36px !important;
+  font-weight: 900 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  letter-spacing: -1px !important;
+  line-height: 1 !important;
+}
+
+.top100-card-genre {
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  align-self: flex-start;
+}
+
+.top100-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: 10px;
+}
+

@@ -345,6 +345,115 @@
         </div>
       </div>
 
+      <!-- Top 100 Page -->
+      <div id="top100Page" style="display: none">
+        <!-- Banner -->
+        <div class="top100-banner">
+          <div class="top100-banner-text">
+            <span class="top100-t">T</span>
+            <span class="top100-o">O</span>
+            <span class="top100-p">P</span>
+            <span class="top100-num">100</span>
+          </div>
+        </div>
+
+        <!-- Nổi Bật -->
+        <div class="top100-section">
+          <h2 class="top100-section-title">Nổi Bật</h2>
+          <div class="top100-grid" id="top100FeaturedGrid">
+            <div class="top100-card" onclick="openTop100('Nhạc Trẻ', 'nhạc trẻ việt nam hay nhất 2024')" style="background: linear-gradient(135deg, #c2185b, #7b1fa2)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">NHẠC TRẺ</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('Pop Âu Mỹ', 'pop us uk hits 2024')" style="background: linear-gradient(135deg, #1565c0, #4a148c)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">POP ÂU MỸ</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('Hàn Quốc', 'kpop hits 2024')" style="background: linear-gradient(135deg, #00838f, #006064)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">HÀN QUỐC</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('Rap Việt', 'rap việt hay nhất 2024')" style="background: linear-gradient(135deg, #37474f, #263238)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">RAP VIỆT</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('EDM Âu Mỹ', 'edm hits 2024')" style="background: linear-gradient(135deg, #0277bd, #01579b)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">EDM ÂU MỸ</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nhạc Việt Nam -->
+        <div class="top100-section">
+          <h2 class="top100-section-title">Nhạc Việt Nam</h2>
+          <div class="top100-grid">
+            <div class="top100-card" onclick="openTop100('V-Pop', 'vpop việt nam hay nhất')" style="background: linear-gradient(135deg, #ad1457, #880e4f)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">V-POP</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('Bolero', 'bolero nhạc vàng hay nhất')" style="background: linear-gradient(135deg, #6a1b9a, #4a148c)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">BOLERO</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('Nhạc Remix', 'nhạc remix việt nam hay nhất')" style="background: linear-gradient(135deg, #1b5e20, #2e7d32)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">NHẠC REMIX</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('V-Rap', 'v-rap việt nam 2024')" style="background: linear-gradient(135deg, #bf360c, #b71c1c)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">V-RAP</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('Pop Ballad', 'pop ballad việt nam hay')" style="background: linear-gradient(135deg, #4e342e, #3e2723)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">POP BALLAD</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nhạc Quốc Tế -->
+        <div class="top100-section">
+          <h2 class="top100-section-title">Nhạc Quốc Tế</h2>
+          <div class="top100-grid">
+            <div class="top100-card" onclick="openTop100('US-UK', 'us uk pop hits 2024')" style="background: linear-gradient(135deg, #1a237e, #283593)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">US-UK</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('K-Pop', 'kpop 2024 best songs')" style="background: linear-gradient(135deg, #880e4f, #c2185b)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">K-POP</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('C-Pop', 'cpop chinese hits 2024')" style="background: linear-gradient(135deg, #b71c1c, #c62828)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">C-POP</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('J-Pop', 'jpop japanese hits 2024')" style="background: linear-gradient(135deg, #e65100, #bf360c)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">J-POP</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+            <div class="top100-card" onclick="openTop100('EDM', 'edm electronic dance music 2024')" style="background: linear-gradient(135deg, #006064, #00838f)">
+              <div class="top100-card-label"><span>T O P</span><span class="top100-card-num">100</span></div>
+              <div class="top100-card-genre">EDM</div>
+              <div class="top100-card-overlay">▶</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Trang YouTube Topic -->
       <div id="youtubePage" style="display: none">
         <div class="youtube-page-header">

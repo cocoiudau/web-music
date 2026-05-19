@@ -690,3 +690,11 @@ function togglePassword() {
     eye.textContent = "🙈";
   }
 }
+
+// ============================
+// TOP 100 PAGE
+// ============================
+function openTop100(name, query) {
+  openTopic(name, query);
+}
+
