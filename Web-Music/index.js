@@ -31,7 +31,7 @@ function updatePlayBtn() {
       if (btn) btn.innerHTML = currentAudio && !currentAudio.paused ? SVG_PAUSE : SVG_PLAY;
     } else {
       item.classList.remove("is-playing");
-      if (btn) btn.innerHTML = SVG_PLAY; // Reset về icon play
+      if (btn) btn.innerHTML = SVG_PLAY; // Reset icon
     }
   });
 }
@@ -86,7 +86,7 @@ function prevSong() {
       currentAudio.currentTime = 0;
       currentAudio.play();
       setPlayPauseIcon(true);
-      updatePlayBtn(); // ← thêm
+      updatePlayBtn(); // ← add
     }
   }
 }

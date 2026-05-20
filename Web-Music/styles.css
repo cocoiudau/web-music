@@ -1598,7 +1598,7 @@ body {
 }
 
 .top100-section {
-  padding: 16px 0 8px;
+  padding: 16px 20px 8px 20px;
 }
 
 .top100-section-title {
@@ -1682,3 +1682,325 @@ body {
   border-radius: 10px;
 }
 
+
+/* ============================
+   TOP 100 MONTHLY STYLES
+   ============================ */
+
+/* Header banner tháng */
+.top100-month-header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.top100-month-header::before {
+  content: '🏆';
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 60px;
+  opacity: 0.12;
+}
+
+.top100-month-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  color: #ffd700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  width: fit-content;
+  letter-spacing: 0.5px;
+}
+
+.top100-month-title {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.top100-month-sub {
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+}
+
+/* Rank column */
+.top100-song-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 50px 80px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.top100-song-item:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.top100-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+}
+
+.top100-rank-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.45);
+  text-align: center;
+  font-family: monospace;
+  min-width: 28px;
+  display: inline-block;
+}
+
+.top100-rank-medal {
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* Loading animation */
+.top100-loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+}
+
+.top100-loading-icon {
+  font-size: 48px;
+  animation: top100Bounce 1s infinite alternate;
+}
+
+@keyframes top100Bounce {
+  from { transform: scale(1); }
+  to   { transform: scale(1.15); }
+}
+
+.top100-loading-text {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.top100-loading-sub {
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  text-align: center;
+}
+
+.top100-loading-bar {
+  width: 240px;
+  height: 4px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.top100-loading-fill {
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, #a855f7, #ec4899);
+  border-radius: 4px;
+  animation: top100Progress 1.4s ease-in-out infinite;
+}
+
+@keyframes top100Progress {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* ================================================================
+   TOP 100 v3 — Zing MP3 + YouTube
+   ================================================================ */
+
+/* Header banner */
+.t100-header {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  padding: 24px 28px 20px;
+  border: 1px solid rgba(255,215,0,.2);
+}
+.t100-header-bg {
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, #12002a 0%, #1a0540 45%, #0d1f4a 100%);
+  z-index: 0;
+}
+.t100-header-bg::after {
+  content: '🏆';
+  position: absolute; right: 24px; top: 50%; transform: translateY(-50%);
+  font-size: 72px; opacity: .10; pointer-events: none;
+}
+.t100-header-content { position: relative; z-index: 1; }
+
+.t100-month-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(255,215,0,.15);
+  border: 1px solid rgba(255,215,0,.4);
+  color: #ffd700;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: .4px;
+  margin-bottom: 8px;
+}
+.t100-title {
+  color: #fff; font-size: 20px; font-weight: 700;
+  margin: 0 0 6px;
+}
+.t100-subtitle {
+  color: rgba(255,255,255,.55); font-size: 13px; margin: 0;
+}
+.t100-subtitle strong { color: rgba(255,255,255,.85); }
+
+/* Row bài hát */
+.t100-row {
+  display: grid;
+  grid-template-columns: 52px 80px 1fr 36px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s;
+  position: relative;
+}
+.t100-row:hover { background: rgba(255,255,255,.07); }
+.t100-row.t100-row-loading { opacity: .7; pointer-events: none; }
+
+/* Rank */
+.t100-rank-col {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 40px;
+}
+.t100-medal { font-size: 24px; line-height: 1; }
+.t100-num {
+  font-size: 15px; font-weight: 700;
+  color: rgba(255,255,255,.4);
+  font-variant-numeric: tabular-nums;
+  min-width: 28px; text-align: center;
+}
+
+/* Thumbnail */
+.t100-thumb {
+  position: relative; width: 72px; height: 72px;
+  border-radius: 8px; overflow: hidden; flex-shrink: 0;
+}
+.t100-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.t100-no-thumb {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.08); font-size: 26px;
+}
+.t100-play-btn {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.55);
+  color: #fff; font-size: 20px;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .15s;
+  border-radius: 8px;
+}
+.t100-row:hover .t100-play-btn { opacity: 1; }
+
+/* Info */
+.t100-info { overflow: hidden; }
+.t100-song-title {
+  font-size: 14px; font-weight: 600; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.t100-artist {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: rgba(255,255,255,.55);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.t100-artist-name { overflow: hidden; text-overflow: ellipsis; }
+.t100-official-tag {
+  background: rgba(99,102,241,.3); border: 1px solid rgba(99,102,241,.5);
+  color: #a5b4fc; padding: 1px 6px; border-radius: 4px;
+  font-size: 10px; font-weight: 600; flex-shrink: 0;
+}
+.t100-duration { font-size: 11px; color: rgba(255,255,255,.3); margin-top: 3px; }
+
+/* Zing badge */
+.t100-zing-col { display: flex; justify-content: center; }
+.t100-zing-badge {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  color: #fff; font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; opacity: .7;
+}
+
+/* Loading */
+.t100-loading-box {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; padding: 48px 24px; text-align: center;
+}
+.t100-loading-icon { font-size: 44px; animation: t100bounce .9s infinite alternate; }
+@keyframes t100bounce { to { transform: scale(1.15) rotate(5deg); } }
+.t100-loading-title {
+  color: #fff; font-size: 16px; font-weight: 600;
+}
+.t100-loading-info { color: rgba(255,255,255,.5); font-size: 13px; line-height: 1.6; }
+.t100-loading-bar {
+  width: 220px; height: 3px;
+  background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden;
+  margin-top: 6px;
+}
+.t100-loading-fill {
+  height: 100%; width: 35%;
+  background: linear-gradient(90deg, #7c3aed, #ec4899);
+  border-radius: 3px;
+  animation: t100bar 1.3s ease-in-out infinite;
+}
+@keyframes t100bar {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* Error */
+.t100-error-box {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; padding: 40px 24px; text-align: center; max-width: 400px;
+}
+.t100-error-icon { font-size: 40px; }
+.t100-error-title { color: #fff; font-size: 17px; font-weight: 700; }
+.t100-error-body { color: rgba(255,255,255,.6); font-size: 13px; line-height: 1.7; }
+.t100-code {
+  display: inline-block;
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
+  border-radius: 6px; padding: 6px 14px; margin: 8px 0;
+  font-family: monospace; font-size: 14px; color: #a5f3fc;
+  user-select: all;
+}
+.t100-retry-btn {
+  margin-top: 6px;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  color: #fff; border: none; border-radius: 8px;
+  padding: 10px 24px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: opacity .2s;
+}
+.t100-retry-btn:hover { opacity: .85; }
