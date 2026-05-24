@@ -773,13 +773,7 @@ function getChartMedalClass(index) {
 }
 
 function fetchVietnameseYouTubeChart(limit) {
-  const queries = [
-    "nhạc việt official music video",
-    "vpop official music video",
-    "nhạc trẻ việt nam official mv",
-    "vietnamese music official video",
-    "bolero việt nam official music video",
-  ];
+  const queries = ["nhạc việt official music video", "vpop official music video", "nhạc trẻ việt nam official mv", "vietnamese music official video", "bolero việt nam official music video"];
 
   return promisePool(queries, 2, (query) => fetchYouTubeMostViewedVideos(query, 50).catch(() => []))
     .then((groups) => uniqueVideosById(groups.flat()))
@@ -809,9 +803,7 @@ function fetchYouTubeMostViewedVideos(query, totalResults) {
 
   const tryFetchWithKey = (keysLeft) => {
     if (keysLeft <= 0) return Promise.reject(new Error("Quota exceeded: tất cả API key đã hết quota!"));
-    const apiUrl =
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&order=viewCount&safeSearch=none&regionCode=VN&relevanceLanguage=vi` +
-      `&q=${encodeURIComponent(query)}&key=${getYTApiKey()}`;
+    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&order=viewCount&safeSearch=none&regionCode=VN&relevanceLanguage=vi` + `&q=${encodeURIComponent(query)}&key=${getYTApiKey()}`;
 
     const fetchPage = (pageToken) => {
       if (items.length >= totalResults) return Promise.resolve(items.slice(0, totalResults));
@@ -1194,7 +1186,12 @@ function showSearchHistoryDropdown() {
 }
 
 function getYouTubeSearchCacheKey(query) {
-  return "yt_search_unfiltered_" + String(query || "").toLowerCase().trim();
+  return (
+    "yt_search_unfiltered_" +
+    String(query || "")
+      .toLowerCase()
+      .trim()
+  );
 }
 
 function readYouTubeSearchCache(query) {
@@ -1254,7 +1251,6 @@ Object.defineProperty(window, "YT_API_KEY", { get: () => getYTApiKey() });
 const ARTIST_RESULTS_COUNT = 50;
 const AUDIUS_API_BASE = "https://discoveryprovider.audius.co/v1";
 const AUDIUS_APP_NAME = "ListenMusic";
-const INVIDIOUS_ENDPOINTS = ["https://yewtu.cafe", "https://yewtu.eu", "https://inv.nadeko.net", "https://vid.puffyan.us"];
 
 let ytPlayer = null;
 let ytReady = false;
@@ -2025,10 +2021,12 @@ function getLocalArtistItems() {
 }
 
 function getPrimaryLocalArtist(artistText) {
-  return String(artistText || "")
-    .split(/\s*(?:,|;|&|\band\b|\bft\.?\b|\bfeat\.?\b|\bx\b)\s*/i)
-    .map((name) => cleanupArtistName(name))
-    .find((name) => name && isLikelyRealArtistName(name)) || "";
+  return (
+    String(artistText || "")
+      .split(/\s*(?:,|;|&|\band\b|\bft\.?\b|\bfeat\.?\b|\bx\b)\s*/i)
+      .map((name) => cleanupArtistName(name))
+      .find((name) => name && isLikelyRealArtistName(name)) || ""
+  );
 }
 
 function shouldExcludeArtistName(name) {
@@ -2070,9 +2068,7 @@ function renderArtistRanking(artists) {
   list.innerHTML = artists
     .map((artist, i) => {
       const photo = getArtistPhoto(artist, i);
-      const meta = hasResolvedMaySong(artist)
-        ? `Bài nổi bật: ${artist.song}${artist.viewCount ? " · " + formatViewCount(artist.viewCount) : ""}`
-        : "";
+      const meta = hasResolvedMaySong(artist) ? `Bài nổi bật: ${artist.song}${artist.viewCount ? " · " + formatViewCount(artist.viewCount) : ""}` : "";
       return `
         <div class="artist-row" onclick="openArtistSongs(${i})">
           <div class="artist-rank">${i + 1}</div>
@@ -2156,16 +2152,9 @@ function refreshCurrentArtistSongs() {
 }
 
 function fetchArtistYouTubeCandidates(artistName) {
-  const queries = [
-    `${artistName} official music video`,
-    `${artistName} official audio`,
-    `${artistName} live`,
-    `${artistName} lyric video`,
-    `${artistName} album`,
-  ];
+  const queries = [`${artistName} official music video`, `${artistName} official audio`, `${artistName} live`, `${artistName} lyric video`, `${artistName} album`];
 
-  return promisePool(queries, 2, (query) => fetchYouTubeVideosWithFallback(query, 20).catch(() => []))
-    .then((groups) => uniqueVideosById(groups.flat()));
+  return promisePool(queries, 2, (query) => fetchYouTubeVideosWithFallback(query, 20).catch(() => [])).then((groups) => uniqueVideosById(groups.flat()));
 }
 
 function filterArtistSongVideos(items, artistName, limit) {
@@ -2238,8 +2227,7 @@ function fetchMaySongVideosForSourcePairs() {
   const period = getArtistPeriod(5);
   const publishedAfter = `${period.year}-05-01T00:00:00Z`;
   const publishedBefore = `${period.year}-06-01T00:00:00Z`;
-  return promisePool(getMusicSourceArtistSeeds(), 4, (item) => fetchYouTubeVideoForSourcePair(item, publishedAfter, publishedBefore))
-    .then((items) => items.filter(Boolean).sort((a, b) => Number(b.viewCount || 0) - Number(a.viewCount || 0)));
+  return promisePool(getMusicSourceArtistSeeds(), 4, (item) => fetchYouTubeVideoForSourcePair(item, publishedAfter, publishedBefore)).then((items) => items.filter(Boolean).sort((a, b) => Number(b.viewCount || 0) - Number(a.viewCount || 0)));
 }
 
 function fetchYouTubeVideoForSourcePair(item, publishedAfter, publishedBefore) {
@@ -2263,17 +2251,21 @@ function fetchYouTubeVideoForArtistMonth(item, publishedAfter, publishedBefore) 
 }
 
 function pickBestSourcePairVideo(sourceItem, videos) {
-  return (videos || [])
-    .map((video) => normalizeSourcePairYouTubeVideo(sourceItem, video))
-    .filter(Boolean)
-    .sort((a, b) => Number(b.viewCount || 0) - Number(a.viewCount || 0))[0] || null;
+  return (
+    (videos || [])
+      .map((video) => normalizeSourcePairYouTubeVideo(sourceItem, video))
+      .filter(Boolean)
+      .sort((a, b) => Number(b.viewCount || 0) - Number(a.viewCount || 0))[0] || null
+  );
 }
 
 function pickBestArtistMonthVideo(sourceItem, videos) {
-  return (videos || [])
-    .map((video) => normalizeArtistMonthYouTubeVideo(sourceItem, video))
-    .filter(Boolean)
-    .sort((a, b) => Number(b.viewCount || 0) - Number(a.viewCount || 0))[0] || null;
+  return (
+    (videos || [])
+      .map((video) => normalizeArtistMonthYouTubeVideo(sourceItem, video))
+      .filter(Boolean)
+      .sort((a, b) => Number(b.viewCount || 0) - Number(a.viewCount || 0))[0] || null
+  );
 }
 
 function promisePool(items, concurrency, worker) {
@@ -2340,10 +2332,7 @@ function fetchYouTubeVideosByPublishedMonth(query, totalResults, publishedAfter,
     const remaining = totalResults - items.length;
     const size = Math.min(pageSize, remaining);
     const tokenPart = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
-    const apiUrl =
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&order=viewCount&safeSearch=none&videoEmbeddable=true` +
-      `&publishedAfter=${encodeURIComponent(publishedAfter)}&publishedBefore=${encodeURIComponent(publishedBefore)}` +
-      `&q=${encodeURIComponent(query)}&key=${getYTApiKey()}`;
+    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&order=viewCount&safeSearch=none&videoEmbeddable=true` + `&publishedAfter=${encodeURIComponent(publishedAfter)}&publishedBefore=${encodeURIComponent(publishedBefore)}` + `&q=${encodeURIComponent(query)}&key=${getYTApiKey()}`;
 
     return fetch(`${apiUrl}&maxResults=${size}${tokenPart}`)
       .then((r) => r.json())
@@ -2778,9 +2767,7 @@ function formatViewCount(value) {
 function renderMonthlySongs(artists) {
   const list = document.getElementById("monthlySongList");
   if (!list) return;
-  const resolvedSongs = (artists || [])
-    .map((item, sourceIndex) => ({ item, sourceIndex }))
-    .filter(({ item }) => hasResolvedMaySong(item));
+  const resolvedSongs = (artists || []).map((item, sourceIndex) => ({ item, sourceIndex })).filter(({ item }) => hasResolvedMaySong(item));
 
   if (resolvedSongs.length === 0) {
     list.innerHTML = "";
@@ -2996,9 +2983,7 @@ function fetchArtistPhotoUrl(artistName, featuredSong, channelId, preferSongThum
 
 function fetchYouTubeChannelPhotoUrl(artistName, channelId) {
   if (channelId) {
-    const channelUrl =
-      `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${encodeURIComponent(channelId)}` +
-      `&key=${getYTApiKey()}`;
+    const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${encodeURIComponent(channelId)}` + `&key=${getYTApiKey()}`;
 
     return fetch(channelUrl)
       .then((r) => r.json())
@@ -3016,9 +3001,7 @@ function fetchYouTubeChannelPhotoUrl(artistName, channelId) {
   }
 
   const query = `${artistName} official artist music`;
-  const apiUrl =
-    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=5` +
-    `&q=${encodeURIComponent(query)}&key=${getYTApiKey()}`;
+  const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=5` + `&q=${encodeURIComponent(query)}&key=${getYTApiKey()}`;
 
   return fetch(apiUrl)
     .then((r) => r.json())
@@ -3231,7 +3214,9 @@ function escapeTemplateText(text) {
 }
 
 function searchYouTube(query, playFirst) {
-  query = String(query || "").trim().toLowerCase();
+  query = String(query || "")
+    .trim()
+    .toLowerCase();
   if (!query || query.length < SEARCH_MIN_QUERY_LENGTH) return;
 
   document.getElementById("searchHistory").style.display = "none";
