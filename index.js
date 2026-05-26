@@ -261,18 +261,19 @@ function toggleMute() {
 const HOME_ADS = [
   {
     brand: "Listen Music",
-    title: "VIP Center",
-    copy: "Nghe nhạc chất lượng cao, playlist không giới hạn, ưu đãi tháng này",
+    title: "Top 100",
+    copy: "Khám phá nhanh các bài hát nổi bật và playlist đang được nghe nhiều.",
     buttonText: "Khám phá ngay",
     action: function () {
-      showPage("vipPage");
+      showPage("top100Page");
+      setActive(document.querySelector(".sidebar-menu a:nth-child(3)"));
     },
     bgImage: "https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=1800&q=95",
   },
   {
     brand: "Listen Music",
     title: "Thưởng thức âm nhạc",
-    copy: "VIP mới: chất lượng cao và trải nghiệm không giới hạn.",
+    copy: "Mở playlist yêu thích, tìm nghệ sĩ mới và nghe nhạc mỗi ngày.",
     buttonText: "Nghe ngay",
     action: function () {
       showPage("homePage");
@@ -281,10 +282,10 @@ const HOME_ADS = [
     bgImage: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1800&q=95",
   },
   {
-    brand: "VIP Deal",
-    title: "Ưu đãi tháng này",
-    copy: "Đăng ký VIP ngay để nhận ưu đãi đặc biệt và playlist cập nhật mỗi ngày.",
-    buttonText: "Đăng ký VIP",
+    brand: "Listen Music",
+    title: "Playlist cập nhật",
+    copy: "Các chủ đề nghe nhanh được làm mới để bạn dễ chọn bài phù hợp.",
+    buttonText: "Xem Top 100",
     action: function () {
       showPage("top100Page");
       setActive(document.querySelector(".sidebar-menu a:nth-child(3)"));
@@ -415,7 +416,7 @@ function goHistoryForward() {
 }
 
 function showPage(page) {
-  var pageIds = ["homePage", "libraryPage", "favoritePage", "downloadPage", "uploadPage", "mvPage", "artistPage", "artistSongsPage", "top100Page", "zingChartPage", "recentPage", "youtubePage", "vipPage", "aboutPage", "termsPage"];
+  var pageIds = ["homePage", "libraryPage", "favoritePage", "downloadPage", "uploadPage", "mvPage", "artistPage", "artistSongsPage", "top100Page", "zingChartPage", "recentPage", "youtubePage", "aboutPage", "termsPage", "privacyPage"];
   pageIds.forEach(function (p) {
     var el = document.getElementById(p);
     if (el) el.style.display = "none";
@@ -444,7 +445,7 @@ function showPage(page) {
 
 window.onpopstate = function (event) {
   if (event.state && event.state.page) {
-    var pageIds = ["homePage", "libraryPage", "favoritePage", "downloadPage", "uploadPage", "mvPage", "artistPage", "artistSongsPage", "top100Page", "zingChartPage", "recentPage", "youtubePage", "vipPage", "aboutPage", "termsPage"];
+    var pageIds = ["homePage", "libraryPage", "favoritePage", "downloadPage", "uploadPage", "mvPage", "artistPage", "artistSongsPage", "top100Page", "zingChartPage", "recentPage", "youtubePage", "aboutPage", "termsPage", "privacyPage"];
     pageIds.forEach(function (p) {
       var el = document.getElementById(p);
       if (el) el.style.display = "none";
@@ -1251,6 +1252,7 @@ Object.defineProperty(window, "YT_API_KEY", { get: () => getYTApiKey() });
 const ARTIST_RESULTS_COUNT = 50;
 const AUDIUS_API_BASE = "https://discoveryprovider.audius.co/v1";
 const AUDIUS_APP_NAME = "ListenMusic";
+const INVIDIOUS_ENDPOINTS = [];
 
 let ytPlayer = null;
 let ytReady = false;
@@ -1734,13 +1736,14 @@ const NON_ARTIST_TITLE_PATTERNS = /(nonstop|top\s*\d*|bxh|bảng xếp hạng|pl
 const ARTIST_AD_REFRESH_DELAY = 5000;
 const ARTIST_ADS = [
   {
-    kicker: "LISTEN VIP",
+    kicker: "LISTEN MUSIC",
     title: "Âm nhạc chất lượng cao mỗi ngày",
-    body: "Nâng cấp trải nghiệm nghe nhạc với playlist cá nhân, âm thanh rõ hơn và ít gián đoạn hơn.",
-    buttonText: "Vào VIP Center",
+    body: "Khám phá playlist cá nhân, âm thanh rõ hơn và ít gián đoạn hơn.",
+    buttonText: "Xem Top 100",
     bgImage: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=1800&q=90",
     action: function () {
-      showPage("vipPage");
+      showPage("top100Page");
+      setActive(document.querySelector(".sidebar-menu a:nth-child(3)"));
     },
   },
   {
@@ -3377,7 +3380,7 @@ const I18N = {
     navArtist: "🎸 Nghệ Sĩ",
     navChart: "BXH Music",
     navRecent: "Bài hát gần đây",
-    vipCenter: "👑 VIP Center",
+    top100Shortcut: "Top 100",
     searchHistory: "🕐 Tìm kiếm gần đây",
     searchResults: "🎵 Kết quả",
     noHistory: "Chưa có lịch sử tìm kiếm",
@@ -3404,13 +3407,13 @@ const I18N = {
     reduceMotionDesc: "Giảm animation và hiệu ứng hover.",
     language: "Ngôn ngữ",
     languageDesc: "Chọn ngôn ngữ hiển thị cho Listen Music.",
-    aboutBody: "<p><strong>Listen Music</strong> là trình nghe nhạc cá nhân tích hợp nhạc local, YouTube, Top 100, lịch sử nghe và trang VIP.</p><p>Phiên bản hiện tại tập trung vào trải nghiệm nghe nhạc nhanh, giao diện tối và tìm kiếm tiết kiệm quota.</p>",
+    aboutBody: "<p><strong>Listen Music</strong> là trình nghe nhạc cá nhân tích hợp nhạc local, YouTube, Top 100 và lịch sử nghe.</p><p>Phiên bản hiện tại tập trung vào trải nghiệm nghe nhạc nhanh, giao diện tối và tìm kiếm tiết kiệm quota.</p>",
     termsBody: "<p>Bạn chịu trách nhiệm với nội dung mình phát, tải lên hoặc chia sẻ trong ứng dụng.</p><p>Nhạc từ YouTube được phát thông qua trình phát nhúng và tuân theo điều khoản của nền tảng nguồn.</p>",
     privacyBody: "<p>Ứng dụng lưu lịch sử nghe, cache tìm kiếm và tùy chọn cài đặt trong trình duyệt của bạn bằng <code>localStorage</code>.</p><p>Dữ liệu này nằm trên máy của bạn và có thể xóa bằng cách xóa dữ liệu trang web trong trình duyệt.</p>",
     copyrightBody: "Nếu bạn thấy nội dung cần gỡ bỏ, hãy gửi tên bài hát, nghệ sĩ, liên kết video và lý do báo cáo.",
     sendContact: "Gửi liên hệ",
-    adsBody: "Gói VIP giúp ẩn quảng cáo trong trải nghiệm Listen Music và ưu tiên các playlist chất lượng cao.",
-    viewVip: "Xem gói VIP",
+    adsBody: "Listen Music chỉ hiển thị các gợi ý nội dung nội bộ và không yêu cầu đăng nhập hoặc thanh toán.",
+    viewVip: "Xem Top 100",
     contactEmail: "Email của bạn",
     contactMessage: "Nội dung liên hệ",
     contactThanks: "Cảm ơn bạn. Nội dung đã được ghi nhận demo.",
@@ -3425,7 +3428,7 @@ const I18N = {
     navArtist: "🎸 Artists",
     navChart: "Music Chart",
     navRecent: "Recently played",
-    vipCenter: "👑 VIP Center",
+    top100Shortcut: "Top 100",
     searchHistory: "🕐 Recent searches",
     searchResults: "🎵 Results",
     noHistory: "No recent searches",
@@ -3452,13 +3455,13 @@ const I18N = {
     reduceMotionDesc: "Reduce animations and hover effects.",
     language: "Language",
     languageDesc: "Choose the display language for Listen Music.",
-    aboutBody: "<p><strong>Listen Music</strong> is a personal music player with local music, YouTube, Top 100, listening history, and VIP subscriptions.</p><p>This version focuses on fast playback, a dark interface, and quota-friendly search.</p>",
+    aboutBody: "<p><strong>Listen Music</strong> is a personal music player with local music, YouTube, Top 100, and listening history.</p><p>This version focuses on fast playback, a dark interface, and quota-friendly search.</p>",
     termsBody: "<p>You are responsible for the content you play, upload, or share in the app.</p><p>YouTube music is played through the embedded player and follows the source platform's terms.</p>",
     privacyBody: "<p>The app stores listening history, search cache, and preferences in your browser using <code>localStorage</code>.</p><p>This data stays on your device and can be removed by clearing site data in your browser.</p>",
     copyrightBody: "If you find content that should be removed, send the song name, artist, video link, and report reason.",
     sendContact: "Send message",
-    adsBody: "VIP removes ads from the Listen Music experience and prioritizes high-quality playlists.",
-    viewVip: "View VIP plans",
+    adsBody: "Listen Music only shows internal content suggestions and does not ask for sign-in or payment.",
+    viewVip: "View Top 100",
     contactEmail: "Your email",
     contactMessage: "Message",
     contactThanks: "Thanks. Your demo message has been received.",
@@ -3577,7 +3580,7 @@ function applyLanguageText() {
     if (icon) sidebarPlaylists[1].appendChild(icon);
     sidebarPlaylists[1].append(" " + t("navRecent"));
   }
-  setText(".vip-btn", t("vipCenter"));
+  setText(".top100-shortcut-btn", t("top100Shortcut"));
   setText("#searchHistory .search-section-title", t("searchHistory"));
   setText("#searchResults .search-section-title", t("searchResults"));
   setText(".settings-panel-kicker", t("settingsKicker"));
@@ -3651,7 +3654,7 @@ function getSettingsPanelContent(type) {
     },
     ads: {
       title: t("ads"),
-      html: `<div class="settings-info"><p>${t("adsBody")}</p><button class="settings-action-btn" onclick="closeSettingsPanel(); showPage('vipPage')">${t("viewVip")}</button></div>`,
+      html: `<div class="settings-info"><p>${t("adsBody")}</p><button class="settings-action-btn" onclick="closeSettingsPanel(); showPage('top100Page')">${t("viewVip")}</button></div>`,
     },
     contact: {
       title: t("contact"),
@@ -3670,40 +3673,11 @@ document.addEventListener("click", function (e) {
 
 applyAppSettings();
 
-// ============================
-// LOGIN MODAL
-// ============================
-function openLoginModal() {
-  document.getElementById("loginModalOverlay").classList.add("active");
-  document.body.style.overflow = "hidden";
-}
-
-function closeLoginModal() {
-  document.getElementById("loginModalOverlay").classList.remove("active");
-  document.body.style.overflow = "";
-}
-
 document.addEventListener("keydown", function (e) {
   if (e.key === "Escape") {
-    closeLoginModal();
     closeSettingsPanel();
   }
 });
-
-// Toggle password visibility
-function togglePassword() {
-  const input = document.querySelector('.login-input[type="password"], .login-input[type="text"][data-pass]');
-  const eye = document.querySelector(".login-eye");
-  const passInput = document.getElementById("passwordInput");
-
-  if (passInput.type === "password") {
-    passInput.type = "text";
-    eye.textContent = "👁";
-  } else {
-    passInput.type = "password";
-    eye.textContent = "🙈";
-  }
-}
 
 // ============================
 // TOP 100 PAGE

@@ -9,64 +9,6 @@
     <script src="https://www.youtube.com/iframe_api"></script>
   </head>
   <body>
-    <!-- Login Modal -->
-    <div class="login-modal-overlay" id="loginModalOverlay" onclick="closeLoginModal()">
-      <div class="login-modal" onclick="event.stopPropagation()">
-        <button class="login-modal-close" onclick="closeLoginModal()">✕</button>
-        <h2 class="login-modal-title">Đăng nhập</h2>
-        <div class="login-input-group">
-          <input type="text" class="login-input" placeholder="Email hoặc tên đăng nhập" />
-        </div>
-        <div class="login-input-group">
-          <input type="password" class="login-input" id="passwordInput" placeholder="Mật khẩu" />
-          <span class="login-eye" onclick="togglePassword()">🙈</span>
-        </div>
-        <div class="login-options">
-          <label>
-            <input type="checkbox" />
-            Ghi nhớ đăng nhập
-          </label>
-          <a href="#">Quên mật khẩu?</a>
-        </div>
-        <button class="login-submit-btn">Đăng nhập</button>
-        <div class="login-divider"><span>Hoặc đăng nhập với</span></div>
-        <div class="login-social">
-          <button class="login-social-btn facebook">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877f2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
-            Facebook
-          </button>
-          <button class="login-social-btn google">
-            <svg width="20" height="20" viewBox="0 0 24 24">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-            </svg>
-            Google
-          </button>
-        </div>
-        <div class="login-social" style="margin-top: 10px">
-          <button class="login-social-btn phone">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-phone" viewBox="0 0 16 16">
-              <path d="M11 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM5 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" />
-              <path d="M8 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2" />
-            </svg>
-            Số điện thoại
-          </button>
-          <button class="login-social-btn qr">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-qr-code-scan" viewBox="0 0 16 16">
-              <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" />
-              <path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" />
-              <path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" />
-              <path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" />
-              <path d="M12 9h2V8h-2z" />
-            </svg>
-            QR Code
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-logo">
@@ -218,7 +160,7 @@
               <span class="settings-label">Thỏa thuận sử dụng dịch vụ</span>
               <span class="settings-arrow" style="font-size: 10px"></span>
             </a>
-            <a href="#" class="settings-item" onclick="openSettingsPanel('privacy')">
+            <a href="#" class="settings-item" onclick="closeSettings(); closeSettingsPanel(); showPage('privacyPage')">
               <span class="settings-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path fill-rule="evenodd" d="M8 0c-.69 0-1.843.265-2.928.56-1.11.3-2.229.655-2.887.87a1.54 1.54 0 0 0-1.044 1.262c-.596 4.477.787 7.795 2.465 9.99a11.8 11.8 0 0 0 2.517 2.453c.386.273.744.482 1.048.625.28.132.581.24.829.24s.548-.108.829-.24a7 7 0 0 0 1.048-.625 11.8 11.8 0 0 0 2.517-2.453c1.678-2.195 3.061-5.513 2.465-9.99a1.54 1.54 0 0 0-1.044-1.263 63 63 0 0 0-2.887-.87C9.843.266 8.69 0 8 0m0 5a1.5 1.5 0 0 1 .5 2.915l.385 1.99a.5.5 0 0 1-.491.595h-.788a.5.5 0 0 1-.49-.595l.384-1.99A1.5 1.5 0 0 1 8 5" />
@@ -253,12 +195,7 @@
             </a>
           </div>
         </div>
-        <button class="header-btn vip-btn" onclick="showPage('vipPage')">👑 VIP Center</button>
-        <button class="header-btn user-btn" onclick="openLoginModal()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-person-fill" viewBox="0 0 16 16">
-            <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6" />
-          </svg>
-        </button>
+        <button class="header-btn top100-shortcut-btn" onclick="showPage('top100Page')">Top 100</button>
       </div>
     </div>
 
@@ -282,8 +219,8 @@
           <button class="home-ad-close" type="button" onclick="closeHomeAd()" aria-label="Đóng quảng cáo">×</button>
           <div class="home-ad-brand" id="homeAdBrand">Listen Music</div>
           <div class="home-ad-copy">
-            <strong id="homeAdTitle">VIP Center</strong>
-            <span id="homeAdCopy">Nghe nhạc chất lượng cao, playlist không giới hạn, ưu đãi tháng này</span>
+            <strong id="homeAdTitle">Top 100</strong>
+            <span id="homeAdCopy">Khám phá nhanh các bài hát nổi bật và playlist đang được nghe nhiều.</span>
           </div>
           <button
             class="home-ad-action-btn"
@@ -647,85 +584,6 @@
         </div>
       </div>
 
-      <!-- VIP Page -->
-      <div id="vipPage" style="display: none">
-        <div class="vip-page">
-          <section class="vip-hero">
-            <div class="vip-hero-copy">
-              <div class="vip-kicker">LISTEN MUSIC VIP</div>
-              <h1>Âm nhạc không giới hạn cho mọi khoảnh khắc</h1>
-              <p>Nghe nhạc chất lượng cao, phát trong nền, tạo playlist riêng và tận hưởng trải nghiệm không quảng cáo.</p>
-              <div class="vip-actions">
-                <button class="vip-primary-btn" onclick="document.getElementById('vipPlans').scrollIntoView({ behavior: 'smooth' })">Chọn gói VIP</button>
-                <button class="vip-secondary-btn" onclick="showPage('homePage')">Nghe thử</button>
-              </div>
-            </div>
-            <div class="vip-hero-panel">
-              <div class="vip-now">Đang phát</div>
-              <div class="vip-disc">
-                <span>♪</span>
-              </div>
-              <div class="vip-track">
-                <strong>Listen Music Premium</strong>
-                <span>Hi-Fi · Không quảng cáo · Playlist riêng</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="vip-benefits">
-            <div class="vip-benefit">
-              <span>♫</span>
-              <strong>Chất lượng cao</strong>
-              <p>Âm thanh rõ hơn cho tai nghe, loa và dàn máy.</p>
-            </div>
-            <div class="vip-benefit">
-              <span>▶</span>
-              <strong>Phát nhạc nền</strong>
-              <p>Tiếp tục nghe khi chuyển trang hoặc khóa màn hình.</p>
-            </div>
-            <div class="vip-benefit">
-              <span>✦</span>
-              <strong>Không quảng cáo</strong>
-              <p>Tập trung vào bài hát và playlist bạn yêu thích.</p>
-            </div>
-          </section>
-
-          <section class="vip-plans" id="vipPlans">
-            <div class="vip-plan">
-              <div class="vip-plan-name">Mini</div>
-              <div class="vip-price">19K<span>/tháng</span></div>
-              <ul>
-                <li>Nghe nhạc chất lượng cao</li>
-                <li>Lưu 50 bài yêu thích</li>
-                <li>Playlist cá nhân</li>
-              </ul>
-              <button onclick="openLoginModal()">Đăng ký</button>
-            </div>
-            <div class="vip-plan featured">
-              <div class="vip-badge">Phổ biến</div>
-              <div class="vip-plan-name">Premium</div>
-              <div class="vip-price">49K<span>/tháng</span></div>
-              <ul>
-                <li>Không quảng cáo</li>
-                <li>Nghe nhạc nền không giới hạn</li>
-                <li>Top 100 và playlist VIP</li>
-              </ul>
-              <button onclick="openLoginModal()">Bắt đầu ngay</button>
-            </div>
-            <div class="vip-plan">
-              <div class="vip-plan-name">Family</div>
-              <div class="vip-price">89K<span>/tháng</span></div>
-              <ul>
-                <li>6 tài khoản thành viên</li>
-                <li>Không quảng cáo</li>
-                <li>Quản lý playlist gia đình</li>
-              </ul>
-              <button onclick="openLoginModal()">Đăng ký</button>
-            </div>
-          </section>
-        </div>
-      </div>
-
       <!-- About Page -->
       <div id="aboutPage" style="display: none">
         <div class="about-page">
@@ -766,8 +624,8 @@
             </article>
             <article class="about-card">
               <span>👑</span>
-              <h2>VIP Center</h2>
-              <p>Trang đăng ký VIP được thiết kế cho trải nghiệm nâng cấp, hiện đại và dễ sử dụng.</p>
+              <h2>Top 100</h2>
+              <p>Bảng xếp hạng giúp mở nhanh các playlist và bài hát nổi bật.</p>
             </article>
           </section>
 
@@ -882,6 +740,58 @@
               <div><strong>Website</strong><span>sonkk12345.github.io</span></div>
               <div><strong>Nhà phát triển</strong><span>Nguyễn Hùng Sơn</span></div>
             </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Privacy Page -->
+      <div id="privacyPage" style="display: none">
+        <div class="terms-page">
+          <section class="terms-hero">
+            <div>
+              <div class="about-kicker">LISTEN MUSIC</div>
+              <h1>CHÍNH SÁCH BẢO MẬT</h1>
+              <p class="terms-updated">Cập nhật: 25/05/2026 — SONKK Studio / Cocoiudau.company</p>
+              <p>Vui lòng đọc kỹ chính sách bảo mật dưới đây trước khi sử dụng Listen Music.</p>
+            </div>
+          </section>
+
+          <section class="terms-grid">
+            <article class="terms-card">
+              <span>1</span>
+              <h2>Thu thập dữ liệu</h2>
+              <p>Listen Music không thu thập dữ liệu cá nhân lên server. Ứng dụng lưu lịch sử nghe, cache tìm kiếm và tùy chọn cài đặt trong trình duyệt bằng localStorage.</p>
+            </article>
+
+            <article class="terms-card">
+              <span>2</span>
+              <h2>Dữ liệu được lưu</h2>
+              <p>Lịch sử bài hát đã nghe, lịch sử tìm kiếm, cài đặt giao diện và ngôn ngữ, danh sách yêu thích.</p>
+            </article>
+
+            <article class="terms-card terms-card-accent">
+              <span>3</span>
+              <h2>Bảo mật dữ liệu</h2>
+              <p>Dữ liệu nằm hoàn toàn trên máy của bạn. Có thể xóa bất cứ lúc nào bằng cách xóa dữ liệu trang web trong trình duyệt.</p>
+            </article>
+
+            <article class="terms-card">
+              <span>4</span>
+              <h2>Nội dung bên thứ ba</h2>
+              <p>Listen Music sử dụng YouTube Data API v3 và Audius API. Chúng tôi không kiểm soát chính sách bảo mật của các dịch vụ này.</p>
+            </article>
+
+            <article class="terms-card terms-card-accent">
+              <span>5</span>
+              <h2>Cookie</h2>
+              <p>Ứng dụng không sử dụng cookie theo dõi. Chỉ localStorage được dùng để lưu tùy chọn cá nhân.</p>
+            </article>
+
+            <article class="terms-card">
+              <span>6</span>
+              <h2>Liên hệ</h2>
+              <p>Nếu có thắc mắc, vui lòng liên hệ: cocoiudau.company@gmail.com</p>
+            </article>
           </section>
         </div>
       </div>
