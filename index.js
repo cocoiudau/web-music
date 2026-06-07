@@ -1414,8 +1414,8 @@ function removeFavoriteTrack(event, index) {
 const RECENT_SONGS_KEY = "listen_music_recent_songs";
 const RECENT_SONGS_LIMIT = 50;
 const CACHE_7_DAYS = 7 * 24 * 60 * 60 * 1000;
-const ARTIST_PHOTO_CACHE_VERSION = "v7_verified_artist_portraits";
-const ARTIST_DYNAMIC_PHOTO_LOOKUP_ENABLED = true;
+const ARTIST_PHOTO_CACHE_VERSION = "v8_verified_artist_portraits";
+const ARTIST_DYNAMIC_PHOTO_LOOKUP_ENABLED = false;
 const SEARCH_CACHE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const SEARCH_MIN_QUERY_LENGTH = 1;
 const SEARCH_DEBOUNCE_DELAY = 1200;
@@ -1464,7 +1464,7 @@ function loadArtistSongDatabase(forceReload) {
   if (!forceReload && artistSongDatabasePromise) return artistSongDatabasePromise;
 
   artistSongDatabasePromise = fetch("data/artists-by-genre/index.json", {
-    cache: forceReload ? "reload" : "default",
+    cache: forceReload ? "reload" : "no-store",
   })
     .then((response) => {
       if (!response.ok) throw new Error("Cannot load artists-by-genre/index.json");
@@ -1475,7 +1475,7 @@ function loadArtistSongDatabase(forceReload) {
       return Promise.all(
         genres.map((genre) =>
           fetch("data/artists-by-genre/" + genre.file, {
-            cache: forceReload ? "reload" : "default",
+            cache: forceReload ? "reload" : "no-store",
           })
             .then((response) => {
               if (!response.ok) throw new Error("Cannot load " + genre.file);
@@ -1635,6 +1635,9 @@ function getDatabaseArtists(forceReload) {
         songCount: songs.length,
         sourceRank: index + 1,
         aliases: artist.aliases || [],
+        photoVerified: !!artist.photoVerified || !!(seedArtist && seedArtist.photo),
+        photoSource: artist.photoSource || (seedArtist && seedArtist.photo ? "seed" : ""),
+        photoLookupDisabled: !!artist.photoLookupDisabled,
         preferSongThumb: false,
         fallbackPhoto: firstSongThumb,
         photo,
@@ -3484,6 +3487,8 @@ function getArtistPhoto(artist, index) {
   if (isUsableArtistPortrait(artist.photo, artist.preferSongThumb, artist.artist)) return artist.photo;
   artist.photo = "";
 
+  if (artist.photoLookupDisabled) return buildArtistPlaceholder(artist.artist, index);
+
   const cached = artist.preferSongThumb ? null : readTimedCache(getArtistPhotoCacheKey(artist.artist), CACHE_7_DAYS);
   if (cached && isUsableArtistPortrait(cached.url, artist.preferSongThumb, artist.artist)) {
     artist.photo = cached.url;
@@ -3498,7 +3503,9 @@ function getArtistPhoto(artist, index) {
 
 function getArtistFallbackPhoto(artist) {
   if (!artist) return "";
-  return artist.fallbackPhoto || artist.songThumb || artist.thumbnail || artist.thumb || "";
+  if (artist.photoLookupDisabled) return "";
+  const fallback = artist.fallbackPhoto || artist.songThumb || artist.thumbnail || artist.thumb || "";
+  return isLikelySongThumbnail(fallback) ? "" : fallback;
 }
 
 function getArtistPhotoCacheKey(artistName) {
@@ -3554,6 +3561,11 @@ function isLikelySongThumbnail(url) {
   return /i\.ytimg\.com\/vi\//.test(value) || /img\.youtube\.com\/vi\//.test(value) || /\/(hqdefault|mqdefault|sddefault|maxresdefault)\.jpg/.test(value);
 }
 
+function isLikelyNonPortraitArtistAsset(url) {
+  const value = normalizeArtistLookupText(decodeURIComponent(String(url || "")));
+  return /\b(logo|icon|poster|album|single|cover|statue|monument|tuong|co vua|emperor|king|queen)\b/.test(value);
+}
+
 function isLikelyWrongArtistPhoto(url, artistName) {
   const dbArtists = (artistSongDatabaseCache && artistSongDatabaseCache.artists) || [];
   if (!url || !dbArtists.length) return false;
@@ -3579,12 +3591,12 @@ function isLikelyWrongArtistPhoto(url, artistName) {
 }
 
 function isUsableArtistPortrait(url, allowSongThumbnail, artistName) {
-  return !!url && !isArtistPlaceholderPhoto(url) && (allowSongThumbnail || !isLikelySongThumbnail(url)) && !isLikelyWrongArtistPhoto(url, artistName);
+  return !!url && !isArtistPlaceholderPhoto(url) && (allowSongThumbnail || !isLikelySongThumbnail(url)) && !isLikelyNonPortraitArtistAsset(url) && !isLikelyWrongArtistPhoto(url, artistName);
 }
 
 function applyArtistPhoto(index, url) {
   const artist = getCurrentArtistItems()[index];
-  if (!artist || !isUsableArtistPortrait(url, artist.preferSongThumb, artist.artist)) return;
+  if (!artist || artist.photoLookupDisabled || !isUsableArtistPortrait(url, artist.preferSongThumb, artist.artist)) return;
   artist.photo = url;
   if (!isLikelySongThumbnail(url)) writeTimedCache(getArtistPhotoCacheKey(artist.artist), { url });
   updateArtistPhoto(index, url);
@@ -3597,7 +3609,7 @@ function getCurrentArtistItems() {
 function ensureArtistPhotoLoaded(index, delay) {
   if (!ARTIST_DYNAMIC_PHOTO_LOOKUP_ENABLED) return;
   const artist = getCurrentArtistItems()[index];
-  if (!artist || isUsableArtistPortrait(artist.photo, artist.preferSongThumb, artist.artist) || artist.photoLoading) return;
+  if (!artist || artist.photoLookupDisabled || isUsableArtistPortrait(artist.photo, artist.preferSongThumb, artist.artist) || artist.photoLoading) return;
   artist.photo = "";
 
   const cacheKey = getArtistPhotoCacheKey(artist.artist);
