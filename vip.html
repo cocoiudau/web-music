@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Listen Music VIP</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      body.vip-page {
+        display: block;
+        min-height: 100vh;
+        text-align: left;
+        color: #fff;
+        background: radial-gradient(circle at 16% 12%, rgba(168, 85, 247, 0.22), transparent 32%), radial-gradient(circle at 84% 22%, rgba(251, 191, 36, 0.16), transparent 28%), linear-gradient(135deg, #10071f 0%, #17152e 52%, #0c1020 100%);
+      }
+
+      .vip-page-shell {
+        width: min(1180px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 26px 0 56px;
+      }
+
+      .vip-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 40px;
+      }
+
+      .vip-brand,
+      .vip-back-btn {
+        color: #fff;
+        text-decoration: none;
+      }
+
+      .vip-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 900;
+        font-size: 20px;
+      }
+
+      .vip-brand-mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #a855f7, #fbbf24);
+        box-shadow: 0 14px 34px rgba(168, 85, 247, 0.35);
+      }
+
+      .vip-back-btn {
+        min-height: 42px;
+        padding: 0 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.08);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 800;
+      }
+
+      /* New action buttons (Zing-like) */
+      .vip-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .vip-actions .vip-link {
+        color: rgba(255, 255, 255, 0.84);
+        text-decoration: none;
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-weight: 800;
+        font-size: 14px;
+      }
+
+      .vip-actions .vip-link:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: #fff;
+      }
+
+      .vip-login-btn {
+        min-height: 40px;
+        padding: 8px 16px;
+        border-radius: 999px;
+        border: 0;
+        background: linear-gradient(135deg, #a855f7, #7c3aed);
+        color: #fff;
+        font-weight: 900;
+        cursor: pointer;
+        box-shadow: 0 10px 30px rgba(124, 58, 237, 0.18);
+      }
+
+      .vip-login-btn.secondary {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        color: #171126;
+      }
+
+      .vip-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 34px;
+        align-items: center;
+        margin-bottom: 34px;
+      }
+
+      .vip-kicker {
+        color: #fbbf24;
+        font-weight: 900;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0;
+        margin-bottom: 12px;
+      }
+
+      .vip-hero h1 {
+        margin: 0;
+        max-width: 760px;
+        font-size: clamp(38px, 6vw, 72px);
+        line-height: 1.02;
+        letter-spacing: 0;
+      }
+
+      .vip-hero p {
+        max-width: 650px;
+        margin: 18px 0 0;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 17px;
+        line-height: 1.7;
+      }
+
+      .vip-highlight,
+      .vip-price-card,
+      .vip-compare {
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.07);
+      }
+
+      .vip-highlight {
+        min-height: 300px;
+        padding: 26px;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      }
+
+      .vip-highlight strong {
+        display: block;
+        font-size: 22px;
+        margin-bottom: 18px;
+      }
+
+      .vip-benefit-list {
+        display: grid;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .vip-benefit-list li {
+        display: flex;
+        gap: 10px;
+        color: rgba(255, 255, 255, 0.78);
+        line-height: 1.45;
+      }
+
+      .vip-benefit-list li::before {
+        content: "✓";
+        color: #fbbf24;
+        font-weight: 900;
+      }
+
+      .vip-billing {
+        width: fit-content;
+        margin: 0 auto 24px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        padding: 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .vip-billing button {
+        min-width: 128px;
+        min-height: 40px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.68);
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .vip-billing button.active {
+        color: #18112a;
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      }
+
+      .vip-plan-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: 30px;
+      }
+
+      .vip-price-card {
+        position: relative;
+        padding: 24px;
+      }
+
+      .vip-price-card.featured {
+        background: linear-gradient(180deg, rgba(251, 191, 36, 0.14), rgba(255, 255, 255, 0.07));
+        border-color: rgba(251, 191, 36, 0.55);
+      }
+
+      .vip-plan-tag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fbbf24;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .vip-price-card h2 {
+        margin: 18px 0 8px;
+        font-size: 28px;
+      }
+
+      .vip-plan-desc {
+        min-height: 48px;
+        margin: 0 0 18px;
+        color: rgba(255, 255, 255, 0.65);
+        line-height: 1.55;
+      }
+
+      .vip-price {
+        display: flex;
+        align-items: end;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      .vip-price strong {
+        font-size: 38px;
+        line-height: 1;
+      }
+
+      .vip-price span {
+        color: rgba(255, 255, 255, 0.58);
+        font-weight: 700;
+      }
+
+      .vip-choose-btn {
+        width: 100%;
+        min-height: 46px;
+        margin-top: 18px;
+        border: 0;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #a855f7, #7c3aed);
+        color: #fff;
+        font-weight: 900;
+        cursor: pointer;
+        box-shadow: 0 14px 30px rgba(124, 58, 237, 0.3);
+      }
+
+      .vip-price-card.featured .vip-choose-btn {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        color: #171126;
+      }
+
+      .vip-compare {
+        overflow: hidden;
+      }
+
+      .vip-compare-row {
+        display: grid;
+        grid-template-columns: 1.35fr repeat(3, 1fr);
+      }
+
+      .vip-compare-row > div {
+        padding: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.75);
+      }
+
+      .vip-compare-row:first-child > div {
+        color: #fff;
+        font-weight: 900;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .vip-compare-row:last-child > div {
+        border-bottom: 0;
+      }
+
+      .vip-note-line {
+        margin-top: 18px;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.52);
+        font-size: 13px;
+      }
+
+      @media (max-width: 900px) {
+        .vip-hero,
+        .vip-plan-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .vip-highlight {
+          min-height: 0;
+        }
+
+        .vip-compare {
+          overflow-x: auto;
+        }
+
+        .vip-compare-row {
+          min-width: 720px;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .vip-page-shell {
+          width: min(100% - 24px, 1180px);
+          padding-top: 16px;
+        }
+
+        .vip-nav {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .vip-billing {
+          width: 100%;
+        }
+
+        .vip-billing button {
+          min-width: 0;
+        }
+      }
+    </style>
+  </head>
+  <body class="vip-page">
+    <main class="vip-page-shell">
+      <nav class="vip-nav">
+        <a class="vip-brand" href="index.html">
+          <span class="vip-brand-mark">♪</span>
+          <span>Listen Music VIP</span>
+        </a>
+        <div class="vip-actions">
+          <a class="vip-link" href="vip.html">Nâng cấp</a>
+          <a class="vip-link" href="#">Nhập code</a>
+          <a class="vip-link" href="#">Hỗ trợ</a>
+          <button class="vip-login-btn" type="button" onclick="openAuthModal('login')">Đăng nhập</button>
+        </div>
+      </nav>
+
+      <section class="vip-hero">
+        <div>
+          <div class="vip-kicker">Nâng cấp tài khoản</div>
+          <h1>Nghe nhạc trọn vẹn hơn với VIP</h1>
+          <p>Mở khóa chất lượng cao, bỏ quảng cáo, tải nhạc nghe offline và ưu tiên các tính năng mới dành riêng cho thành viên VIP.</p>
+        </div>
+        <aside class="vip-highlight">
+          <strong>Quyền lợi VIP nổi bật</strong>
+          <ul class="vip-benefit-list">
+            <li>Không quảng cáo trong quá trình nghe nhạc.</li>
+            <li>Chất lượng âm thanh cao hơn cho bài hát hỗ trợ.</li>
+            <li>Tải nhạc để nghe offline trên thiết bị cá nhân.</li>
+            <li>Đồng bộ thư viện, bài hát yêu thích và lịch sử nghe.</li>
+            <li>Ưu tiên trải nghiệm các tính năng mới.</li>
+          </ul>
+        </aside>
+      </section>
+
+      <div class="vip-billing" aria-label="Chọn chu kỳ thanh toán">
+        <button class="active" type="button" onclick="setBillingCycle('month', this)">Gói tháng</button>
+        <button type="button" onclick="setBillingCycle('year', this)">Gói năm</button>
+      </div>
+
+      <section class="vip-plan-grid">
+        <article class="vip-price-card">
+          <span class="vip-plan-tag">Cơ bản</span>
+          <h2>Basic</h2>
+          <p class="vip-plan-desc">Dành cho người nghe cá nhân muốn loại bỏ quảng cáo và lưu playlist yêu thích.</p>
+          <div class="vip-price">
+            <strong data-month="29K" data-year="299K">29K</strong>
+            <span data-month="/tháng" data-year="/năm">/tháng</span>
+          </div>
+          <ul class="vip-benefit-list">
+            <li>Không quảng cáo</li>
+            <li>Chất lượng 320kbps</li>
+            <li>Tải tối đa 100 bài</li>
+          </ul>
+          <button class="vip-choose-btn" type="button" onclick="upgradeToVip()">Chọn Basic</button>
+        </article>
+
+        <article class="vip-price-card featured">
+          <span class="vip-plan-tag">Phổ biến</span>
+          <h2>Plus</h2>
+          <p class="vip-plan-desc">Gói cân bằng nhất với offline rộng hơn và nhiều quyền lợi cá nhân hóa.</p>
+          <div class="vip-price">
+            <strong data-month="59K" data-year="599K">59K</strong>
+            <span data-month="/tháng" data-year="/năm">/tháng</span>
+          </div>
+          <ul class="vip-benefit-list">
+            <li>Mọi quyền lợi Basic</li>
+            <li>Tải tối đa 1.000 bài</li>
+            <li>Gợi ý nhạc cá nhân hóa</li>
+          </ul>
+          <button class="vip-choose-btn" type="button" onclick="upgradeToVip()">Chọn Plus</button>
+        </article>
+
+        <article class="vip-price-card">
+          <span class="vip-plan-tag">Cao cấp</span>
+          <h2>Pro</h2>
+          <p class="vip-plan-desc">Dành cho người nghe nhiều, cần chất lượng tốt nhất và quyền ưu tiên cao nhất.</p>
+          <div class="vip-price">
+            <strong data-month="99K" data-year="999K">99K</strong>
+            <span data-month="/tháng" data-year="/năm">/tháng</span>
+          </div>
+          <ul class="vip-benefit-list">
+            <li>Mọi quyền lợi Plus</li>
+            <li>Tải không giới hạn</li>
+            <li>Ưu tiên hỗ trợ và tính năng mới</li>
+          </ul>
+          <button class="vip-choose-btn" type="button" onclick="upgradeToVip()">Chọn Pro</button>
+        </article>
+      </section>
+
+      <section class="vip-compare" aria-label="So sánh quyền lợi VIP">
+        <div class="vip-compare-row">
+          <div>Quyền lợi</div>
+          <div>Basic</div>
+          <div>Plus</div>
+          <div>Pro</div>
+        </div>
+        <div class="vip-compare-row">
+          <div>Không quảng cáo</div>
+          <div>Có</div>
+          <div>Có</div>
+          <div>Có</div>
+        </div>
+        <div class="vip-compare-row">
+          <div>Tải nhạc offline</div>
+          <div>100 bài</div>
+          <div>1.000 bài</div>
+          <div>Không giới hạn</div>
+        </div>
+        <div class="vip-compare-row">
+          <div>Chất lượng âm thanh</div>
+          <div>320kbps</div>
+          <div>320kbps + ưu tiên</div>
+          <div>Chất lượng cao nhất</div>
+        </div>
+        <div class="vip-compare-row">
+          <div>Hỗ trợ và tính năng mới</div>
+          <div>Tiêu chuẩn</div>
+          <div>Ưu tiên</div>
+          <div>Ưu tiên cao nhất</div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      function setBillingCycle(cycle, button) {
+        document.querySelectorAll(".vip-billing button").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll(".vip-price strong, .vip-price span").forEach((item) => {
+          item.textContent = item.dataset[cycle];
+        });
+      }
+    </script>
+    <script type="module" src="firebase-auth.js"></script>
+  </body>
+</html>

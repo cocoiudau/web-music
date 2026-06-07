@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read: if owns(userId);
+
+      allow create: if owns(userId)
+        && request.resource.data.keys().hasOnly(['name', 'email', 'isVip', 'createdAt'])
+        && request.resource.data.isVip == false;
+
+      allow update: if owns(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVip']);
+
+      allow delete: if false;
+
+      match /favorites/{songId} {
+        allow read, create, update, delete: if owns(userId);
+      }
+
+      match /downloaded/{songId} {
+        allow read, create, update, delete: if owns(userId);
+      }
+
+      match /vipRequests/{requestId} {
+        allow read: if owns(userId);
+        allow create, update: if owns(userId)
+          && request.resource.data.keys().hasOnly(['status', 'requestedAt'])
+          && request.resource.data.status == 'pending';
+        allow delete: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

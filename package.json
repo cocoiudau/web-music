@@ -1,6 +1,8 @@
 {
   "type": "module",
-  "dependencies": {
-    "music-metadata": "^11.12.3"
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "fill:youtube": "node scripts/fill-youtube-video-ids.mjs"
   }
 }

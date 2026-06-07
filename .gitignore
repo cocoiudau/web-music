@@ -1,0 +1,18 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.playwright-cli/
+*.log
+.DS_Store
+
+# Local/generated music assets should not be pushed.
+sounds/
+images/
+!images/.gitkeep
+songs.json
+readMeta.js
+updateAppleCovers.mjs
+
+# Generated music database/cache files.
+data/*.json

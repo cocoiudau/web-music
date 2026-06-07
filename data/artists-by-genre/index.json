@@ -1,0 +1,13 @@
+{
+  "source": "Top100_CaSi_VietNam.docx",
+  "generatedAt": "2026-06-02",
+  "note": "Phân loại theo thể loại chính; tags dùng cho lọc phụ. tlinh xuất hiện hai lần trong tài liệu gốc nên được gộp với duplicateRanks.",
+  "genres": [
+    { "id": "pop", "name": "Pop / V-Pop", "file": "pop.json" },
+    { "id": "rap-hiphop", "name": "Rap / Hip-hop", "file": "rap-hiphop.json" },
+    { "id": "bolero-tru-tinh", "name": "Bolero / Trữ tình", "file": "bolero-tru-tinh.json" },
+    { "id": "indie-singer-songwriter", "name": "Indie / Singer-songwriter", "file": "indie-singer-songwriter.json" },
+    { "id": "dan-gian-truyen-thong", "name": "Dân gian / Truyền thống / Bán cổ điển", "file": "dan-gian-truyen-thong.json" },
+    { "id": "entertainment-crossover", "name": "Đa lĩnh vực / Crossover", "file": "entertainment-crossover.json" }
+  ]
+}

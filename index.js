@@ -1,18 +1,25 @@
-﻿var currentIndex = 0;
-var currentAudio; // Lưu bài đang phát
-let songs = [];
-let totalSongs = 0;
-let currentAudioSource = "local";
+﻿var currentAudio; // Lưu bài đang phát
+let isPlayingState = false;
+let currentAudioSource = "";
 let audiusTracks = [];
 let currentAudiusIndex = -1;
-let localChartTracks = [];
-let currentLocalChartIndex = -1;
-var localSearchResults = [];
+let chartTracks = [];
+let currentChartIndex = -1;
+let youtubePlaybackQueue = [];
+let currentYouTubeIndex = -1;
+let youtubeProgressTimer = null;
+let currentPlayingTrack = null;
+let userPausedPlayback = false;
+const YOUTUBE_DURATION_CACHE_PREFIX = "yt_duration_";
+const LYRICS_CACHE_PREFIX = "lyrics_cache_v1_";
+const YOUTUBE_UNPLAYABLE_KEY = "listen_music_unplayable_youtube_ids_v1";
+const DEFAULT_SONG_IMAGE = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'%20viewBox='0%200%20240%20240'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20x2='1'%20y1='0'%20y2='1'%3E%3Cstop%20stop-color='%237c3aed'/%3E%3Cstop%20offset='1'%20stop-color='%2314b8a6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='240'%20height='240'%20rx='28'%20fill='url(%23g)'/%3E%3Ctext%20x='50%25'%20y='54%25'%20text-anchor='middle'%20dominant-baseline='middle'%20fill='white'%20font-size='92'%20font-family='Arial,sans-serif'%20font-weight='700'%3E%E2%99%AA%3C/text%3E%3C/svg%3E";
 
 // ============================
 // PLAYER CORE
 // ============================
 function setPlayPauseIcon(isPlaying) {
+  isPlayingState = !!isPlaying;
   var btn = document.getElementById("playPauseBtn");
   btn.innerHTML = isPlaying
     ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-pause-fill" viewBox="0 0 16 16">
@@ -21,93 +28,647 @@ function setPlayPauseIcon(isPlaying) {
     : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
         <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"/>
        </svg>`;
+  updatePlaybackItemState();
 }
 function updatePlayBtn() {
-  const SVG_PLAY = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
-    <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"/>
-  </svg>`;
-  const SVG_PAUSE = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-pause-fill" viewBox="0 0 16 16">
-    <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5m5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5"/>
-  </svg>`;
+  updatePlaybackItemState();
+}
 
-  document.querySelectorAll(".song-item").forEach((item, i) => {
-    const btn = item.querySelector(".song-play-btn");
-    if (i === currentIndex) {
-      item.classList.add("is-playing");
-      if (btn) btn.innerHTML = currentAudio && !currentAudio.paused ? SVG_PAUSE : SVG_PLAY;
-    } else {
-      item.classList.remove("is-playing");
-      if (btn) btn.innerHTML = SVG_PLAY; // Reset icon
+function updatePlaybackItemState() {
+  const activePlaybackId = getCurrentPlaybackId();
+  document.querySelectorAll("[data-playback-id]").forEach((item) => {
+    const isActive = !!activePlaybackId && item.getAttribute("data-playback-id") === activePlaybackId;
+    const isActiveAndPlaying = isActive && isPlayingState;
+    const icon = item.querySelector(".yt-play-icon, .chart-thumb span, .recent-thumb span, .song-play-btn");
+    item.classList.toggle("is-playing", isActive);
+    item.classList.toggle("is-active-playing", isActiveAndPlaying);
+    item.classList.toggle("is-active-paused", isActive && !isPlayingState);
+    if (icon) {
+      icon.textContent = isActiveAndPlaying ? "❚❚" : "▶";
+      icon.style.opacity = isActive ? "1" : "";
     }
   });
 }
 
-function playSound(index) {
-  const song = songs[index];
-  if (!song) return;
+function getPlaybackId(track) {
+  if (!track) return "";
+  if (track.videoId) return "youtube:" + track.videoId;
+  if (track.trackId || track.id) return "audius:" + (track.trackId || track.id);
+  return "";
+}
 
-  if (!song.file) {
-    alert("Bai nay chua co file audio local.");
+function getCurrentPlaybackId() {
+  return getPlaybackId(currentPlayingTrack);
+}
+
+function isCurrentPlaybackTrack(track) {
+  const id = getPlaybackId(track);
+  return !!id && id === getCurrentPlaybackId();
+}
+
+function handlePlaybackButtonClick(event, playHandler) {
+  if (event) event.stopPropagation();
+  if (typeof playHandler === "function") playHandler();
+}
+
+function playYouTubeById(videoId, title, artist, image) {
+  if (!videoId) return;
+  const queueIndex = youtubePlaybackQueue.findIndex((track) => track.videoId === videoId);
+  if (queueIndex >= 0) {
+    playYouTubeFromQueue(queueIndex);
     return;
   }
 
-  currentAudioSource = "local";
-  currentAudiusIndex = -1;
-  currentLocalChartIndex = -1;
+  playYouTube(videoId, title || "Bài hát", {
+    artist: artist || "Nguồn nhạc",
+    image: image || getYouTubeVideoThumbUrl(videoId),
+  });
+}
 
-  if (currentAudio && currentIndex === index) {
-    if (!currentAudio.paused) {
-      currentAudio.pause();
-      setPlayPauseIcon(false);
-    } else {
-      currentAudio.play();
-      setPlayPauseIcon(true);
+function hydrateYouTubeListItems(container) {
+  if (!container) return;
+
+  let queueIndex = 0;
+  container.querySelectorAll(".yt-song-item").forEach((item) => {
+    if (item.classList.contains("audius-song-item")) return;
+
+    const track = youtubePlaybackQueue[queueIndex];
+    if (track) {
+      if (!item.getAttribute("data-playback-id")) item.setAttribute("data-playback-id", getPlaybackId(track));
     }
-    updatePlayBtn();
+    queueIndex += 1;
+  });
+  updatePlaybackItemState();
+}
+
+window.updatePlaybackItemState = updatePlaybackItemState;
+
+function updateMiniPlayerInfo(song) {
+  const thumb = document.getElementById("miniPlayerThumb");
+  const title = document.getElementById("miniPlayerTitle");
+  const artist = document.getElementById("miniPlayerArtist");
+  if (!song || !title || !artist || !thumb) return;
+
+  title.textContent = song.title || song.song || "Bai hat";
+  artist.textContent = song.artist || song.channelTitle || "Listen Music";
+  thumb.src = song.image || song.thumb || song.thumbnail || DEFAULT_SONG_IMAGE;
+  updateMiniMoreMenuInfo(song);
+}
+
+function setCurrentPlayingTrack(track) {
+  currentPlayingTrack = normalizeFavoriteTrack(track);
+  updateMiniPlayerInfo(currentPlayingTrack);
+  updateMiniFavoriteButton();
+  updateMiniDownloadButton();
+}
+
+function notifyPlayerAction(message) {
+  if (typeof window.showToast === "function") {
+    window.showToast(message);
+  } else {
+    alert(message);
+  }
+}
+
+function updateMiniMoreMenuInfo(song) {
+  const thumb = document.getElementById("miniMoreThumb");
+  const title = document.getElementById("miniMoreTitle");
+  const meta = document.getElementById("miniMoreMeta");
+  if (!song || !thumb || !title || !meta) return;
+
+  title.textContent = song.title || song.song || "Bai hat";
+  thumb.src = song.image || song.thumb || song.thumbnail || DEFAULT_SONG_IMAGE;
+  const favoriteLabel = isFavoriteTrack(song) ? "Đã thích" : "Thích";
+  const sourceLabel = song.videoId ? "Nguồn nhạc" : song.trackId ? "Nguồn nhạc" : "Listen Music";
+  meta.textContent = `♡ ${favoriteLabel} · ♫ ${sourceLabel}`;
+}
+
+function toggleMiniMoreMenu(event) {
+  if (event) event.stopPropagation();
+  if (!currentPlayingTrack) {
+    notifyPlayerAction("Chưa có bài hát đang phát.");
     return;
   }
 
-  currentIndex = index;
-  recordListeningHistory({
-    type: "local",
-    title: song.title,
-    artist: song.artist,
-    image: song.image || `images/${song.file.replace("sounds/", "").replace(".mp3", ".jpg")}`,
-    file: song.file,
+  const menu = document.getElementById("miniMoreMenu");
+  const btn = document.getElementById("miniMoreBtn");
+  if (!menu || !btn) return;
+
+  const shouldOpen = !menu.classList.contains("open");
+  updateMiniMoreMenuInfo(currentPlayingTrack);
+  menu.classList.toggle("open", shouldOpen);
+  btn.classList.toggle("active", shouldOpen);
+  menu.setAttribute("aria-hidden", shouldOpen ? "false" : "true");
+}
+
+function closeMiniMoreMenu() {
+  const menu = document.getElementById("miniMoreMenu");
+  const btn = document.getElementById("miniMoreBtn");
+  if (menu) {
+    menu.classList.remove("open");
+    menu.setAttribute("aria-hidden", "true");
+  }
+  if (btn) btn.classList.remove("active");
+}
+
+function getCurrentTrackLink() {
+  if (!currentPlayingTrack) return window.location.href;
+  if (currentPlayingTrack.videoId) return `https://www.youtube.com/watch?v=${currentPlayingTrack.videoId}`;
+  return window.location.href;
+}
+
+function getCurrentTrackSearchQuery(suffix = "") {
+  if (!currentPlayingTrack) return "";
+  return [currentPlayingTrack.title, currentPlayingTrack.artist, suffix].filter(Boolean).join(" ").trim();
+}
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text);
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+  return Promise.resolve();
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function getCurrentLyricsText() {
+  if (!currentPlayingTrack) return "";
+  const lyrics = currentPlayingTrack.lyrics || currentPlayingTrack.lyric || currentPlayingTrack.words || "";
+  if (Array.isArray(lyrics)) return lyrics.join("\n");
+  return String(lyrics || "").trim();
+}
+
+function renderLyricsContent(track, lyricsText) {
+  const lyrics = String(lyricsText || getCurrentLyricsText()).trim();
+  if (lyrics) {
+    return lyrics
+      .split(/\r?\n/)
+      .map((line) => `<p class="lyrics-modal-line">${line.trim() ? escapeHtml(line) : "&nbsp;"}</p>`)
+      .join("");
+  }
+
+  const title = escapeHtml((track && track.title) || "bài hát này");
+  const artist = escapeHtml((track && track.artist) || "Listen Music");
+  return `
+    <div class="lyrics-empty">
+      <strong>Listen Music chưa có lời cho "${title}".</strong>
+      <span>Nghệ sĩ: ${artist}</span>
+      <span>Bạn có thể đóng góp lời bài hát để hiển thị tại đây.</span>
+    </div>
+  `;
+}
+
+function renderLyricsLoading(track) {
+  const title = escapeHtml((track && track.title) || "bài hát này");
+  return `
+    <div class="lyrics-empty">
+      <strong>Đang tìm lời bài hát...</strong>
+      <span>${title}</span>
+    </div>
+  `;
+}
+
+function cleanLyricsText(value) {
+  return String(value || "")
+    .replace(/^\[[^\]]+\]\s*/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function normalizeLyricsSearchValue(value) {
+  return String(value || "")
+    .replace(/&amp;/gi, "&")
+    .replace(/\([^)]*(official|mv|music video|lyrics?|lyric video|audio|visualizer|karaoke|vietsub|remix|cover)[^)]*\)/gi, " ")
+    .replace(/\[[^\]]*(official|mv|music video|lyrics?|lyric video|audio|visualizer|karaoke|vietsub|remix|cover)[^\]]*\]/gi, " ")
+    .replace(/\b(official|mv|music video|audio|lyrics?|lyric video|visualizer|karaoke|vietsub|4k|hd)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\s+\|$/g, "")
+    .trim();
+}
+
+function getLyricsSearchInfo(track) {
+  const rawTitle = track ? track.title || track.song || "" : "";
+  const rawArtist = track ? track.artist || track.channelTitle || "" : "";
+  const titleParts = normalizeLyricsSearchValue(rawTitle)
+    .split("|")
+    .map((part) => normalizeLyricsSearchValue(part))
+    .filter(Boolean);
+  const artistParts = normalizeLyricsSearchValue(rawArtist)
+    .split("|")
+    .map((part) => normalizeLyricsSearchValue(part))
+    .filter(Boolean);
+
+  return {
+    title: titleParts[0] || normalizeLyricsSearchValue(rawTitle),
+    artist: artistParts[0] || titleParts[1] || normalizeLyricsSearchValue(rawArtist),
+  };
+}
+
+function getLyricsCacheKey(track) {
+  const info = getLyricsSearchInfo(track);
+  return LYRICS_CACHE_PREFIX + encodeURIComponent((info.title + "|" + info.artist).toLowerCase());
+}
+
+function scoreLyricsResult(result, info) {
+  const trackName = String(result.trackName || "").toLowerCase();
+  const artistName = String(result.artistName || "").toLowerCase();
+  const title = info.title.toLowerCase();
+  const artist = info.artist.toLowerCase();
+  let score = 0;
+  if (trackName === title) score += 80;
+  else if (trackName.includes(title) || title.includes(trackName)) score += 45;
+  if (artist && artistName === artist) score += 45;
+  else if (artist && (artistName.includes(artist) || artist.includes(artistName))) score += 24;
+  if (result.plainLyrics) score += 12;
+  if (result.syncedLyrics) score += 8;
+  return score;
+}
+
+async function fetchLyricsFromLrclib(track) {
+  const info = getLyricsSearchInfo(track);
+  if (!info.title) return "";
+
+  const cacheKey = getLyricsCacheKey(track);
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) return cached;
+
+  const searchUrls = [];
+  const detailParams = new URLSearchParams({ track_name: info.title });
+  if (info.artist) detailParams.set("artist_name", info.artist);
+  searchUrls.push(`https://lrclib.net/api/search?${detailParams.toString()}`);
+
+  const keywordQueries = [
+    [info.title, info.artist].filter(Boolean).join(" "),
+    [info.title, info.artist.replace(/\s+x\s+/gi, " ")].filter(Boolean).join(" "),
+    info.title,
+  ]
+    .map((query) => query.trim())
+    .filter((query, index, list) => query && list.indexOf(query) === index);
+
+  keywordQueries.forEach((query) => {
+    searchUrls.push(`https://lrclib.net/api/search?${new URLSearchParams({ q: query }).toString()}`);
   });
 
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
-    currentAudio.onended = null;
-    currentAudio.ontimeupdate = null;
+  let results = [];
+  for (const url of searchUrls) {
+    const response = await fetch(url);
+    if (!response.ok) continue;
+    const items = await response.json();
+    if (Array.isArray(items) && items.length) {
+      results = items;
+      break;
+    }
   }
 
-  currentAudio = new Audio(song.file);
-  currentAudio.ontimeupdate = updateProgress;
+  if (!results.length) return "";
 
-  currentAudio.onended = function () {
-    if (currentIndex + 1 < totalSongs) {
-      playSound(currentIndex + 1);
-    } else {
-      currentIndex = 0;
-      setPlayPauseIcon(false);
-      updatePlayBtn();
-    }
+  const best = results
+    .filter((item) => item && (item.plainLyrics || item.syncedLyrics))
+    .sort((a, b) => scoreLyricsResult(b, info) - scoreLyricsResult(a, info))[0];
+
+  const lyrics = cleanLyricsText(best && (best.plainLyrics || best.syncedLyrics));
+  if (lyrics) localStorage.setItem(cacheKey, lyrics);
+  return lyrics;
+}
+
+async function fetchCurrentLyrics(track) {
+  const existing = getCurrentLyricsText();
+  if (existing) return existing;
+  return fetchLyricsFromLrclib(track);
+}
+
+async function showCurrentLyrics() {
+  if (!currentPlayingTrack) {
+    notifyPlayerAction("Chưa có bài hát đang phát.");
+    return;
+  }
+
+  const overlay = document.getElementById("lyricsModalOverlay");
+  const body = document.getElementById("lyricsModalBody");
+  if (!overlay || !body) return;
+
+  body.innerHTML = renderLyricsLoading(currentPlayingTrack);
+  overlay.classList.add("open");
+
+  try {
+    const lyrics = await fetchCurrentLyrics(currentPlayingTrack);
+    body.innerHTML = renderLyricsContent(currentPlayingTrack, lyrics);
+  } catch (error) {
+    console.warn("Lyrics fetch failed:", error);
+    body.innerHTML = renderLyricsContent(currentPlayingTrack, "");
+  }
+}
+
+function closeLyricsModal() {
+  const overlay = document.getElementById("lyricsModalOverlay");
+  if (overlay) overlay.classList.remove("open");
+}
+
+function contributeCurrentLyrics() {
+  const title = currentPlayingTrack ? currentPlayingTrack.title || "bài hát này" : "bài hát này";
+  notifyPlayerAction(`Cảm ơn bạn! Tính năng đóng góp lời cho "${title}" sẽ sớm được mở.`);
+}
+
+function blockCurrentTrack() {
+  closeMiniMoreMenu();
+  if (!currentPlayingTrack) return;
+  const blocked = JSON.parse(localStorage.getItem("blockedTracks") || "[]");
+  const id = getFavoriteIdentity(currentPlayingTrack);
+  if (id && !blocked.includes(id)) {
+    blocked.push(id);
+    localStorage.setItem("blockedTracks", JSON.stringify(blocked.slice(-100)));
+  }
+  notifyPlayerAction("Đã chặn bài hát này khỏi gợi ý.");
+}
+
+function playSimilarContent() {
+  closeMiniMoreMenu();
+  const query = getCurrentTrackSearchQuery("official audio");
+  if (!query) return;
+  searchYouTube(query, true);
+  notifyPlayerAction("Đang phát nội dung tương tự.");
+}
+
+function addCurrentToPlaylist() {
+  closeMiniMoreMenu();
+  toggleCurrentFavorite();
+}
+
+function playCurrentWithLyrics() {
+  closeMiniMoreMenu();
+  const query = getCurrentTrackSearchQuery("lyrics video");
+  if (!query) return;
+  searchYouTube(query, true);
+  notifyPlayerAction("Đang tìm bản có lời bài hát.");
+}
+
+function copyCurrentTrackLink() {
+  closeMiniMoreMenu();
+  copyTextToClipboard(getCurrentTrackLink())
+    .then(() => notifyPlayerAction("Đã sao chép link."))
+    .catch(() => notifyPlayerAction("Không thể sao chép link."));
+}
+
+function shareCurrentTrack() {
+  closeMiniMoreMenu();
+  if (!currentPlayingTrack) return;
+  const shareData = {
+    title: currentPlayingTrack.title || "Listen Music",
+    text: `${currentPlayingTrack.title || "Bài hát"} - ${currentPlayingTrack.artist || "Listen Music"}`,
+    url: getCurrentTrackLink(),
   };
 
-  currentAudio.play();
-  updatePlayBtn();
+  if (navigator.share) {
+    navigator.share(shareData).catch(() => {});
+    return;
+  }
 
+  copyTextToClipboard(shareData.url)
+    .then(() => notifyPlayerAction("Trình duyệt chưa hỗ trợ chia sẻ, đã sao chép link."))
+    .catch(() => notifyPlayerAction("Không thể chia sẻ bài hát."));
+}
+
+document.addEventListener("click", (event) => {
+  const menu = document.getElementById("miniMoreMenu");
+  const btn = document.getElementById("miniMoreBtn");
+  if (!menu || !btn) return;
+  if (!menu.contains(event.target) && !btn.contains(event.target)) closeMiniMoreMenu();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeLyricsModal();
+    closeVipAd();
+  }
+});
+
+function getFavoriteSongs() {
+  return Array.isArray(window.favoriteSongs) ? window.favoriteSongs : [];
+}
+
+function saveFavoriteSongs(items) {
+  window.favoriteSongs = Array.isArray(items) ? items : [];
+}
+
+function getFavoriteIdentity(track) {
+  if (!track) return "";
+  if (track.type === "youtube" && track.videoId) return "youtube:" + track.videoId;
+  if (track.type === "audius" && track.trackId) return "audius:" + track.trackId;
+  return (track.type || "song") + ":" + encodeURIComponent((track.title || "") + "|" + (track.artist || ""));
+}
+
+function normalizeFavoriteTrack(track) {
+  if (!track) return null;
+  return {
+    type: track.type || (track.videoId ? "youtube" : track.trackId || track.id ? "audius" : "song"),
+    title: track.title || track.song || "Bai hat",
+    artist: track.artist || track.channelTitle || "Listen Music",
+    image: track.image || track.thumb || track.thumbnail || DEFAULT_SONG_IMAGE,
+    videoId: track.videoId || "",
+    trackId: track.trackId || track.id || "",
+    artwork: track.artwork || null,
+    duration: track.duration || getCurrentTrackDuration(track) || 0,
+  };
+}
+
+function getCurrentTrackDuration(track) {
+  if (!track || !currentPlayingTrack) return 0;
+  if (getFavoriteIdentity(track) !== getFavoriteIdentity(currentPlayingTrack)) return 0;
+
+  if (currentAudio && Number.isFinite(currentAudio.duration)) {
+    return Math.floor(currentAudio.duration);
+  }
+
+  if (ytPlayer && ytReady && typeof ytPlayer.getDuration === "function") {
+    const duration = ytPlayer.getDuration();
+    return Number.isFinite(duration) ? Math.floor(duration) : 0;
+  }
+
+  return 0;
+}
+
+function getDownloadedIdentity(track) {
+  if (!track) return "";
+  if (track.videoId) return track.videoId;
+  if (track.trackId) return "audius:" + track.trackId;
+  return (track.type || "song") + ":" + (track.title || "") + "|" + (track.artist || "");
+}
+
+function updateMiniDownloadButton() {
+  const btn = document.getElementById("downloadTrackBtn");
+  if (!btn) return;
+
+  const songId = getDownloadedIdentity(currentPlayingTrack);
+  if (songId) {
+    btn.setAttribute("data-download-song-id", songId);
+  } else {
+    btn.removeAttribute("data-download-song-id");
+  }
+
+  if (typeof window.refreshDownloadButtons === "function") {
+    window.refreshDownloadButtons();
+  }
+}
+
+function isFavoriteTrack(track) {
+  const id = getFavoriteIdentity(track);
+  if (!id || !window.isUserLoggedIn) return false;
+  if (window.favoriteSongIds && typeof window.favoriteSongIds.has === "function") {
+    return window.favoriteSongIds.has(id);
+  }
+  return getFavoriteSongs().some((item) => getFavoriteIdentity(item) === id);
+}
+
+function updateMiniFavoriteButton() {
+  const btn = document.getElementById("miniFavoriteBtn");
+  if (!btn) return;
+  const active = isFavoriteTrack(currentPlayingTrack);
+  btn.classList.toggle("active", active);
+  btn.textContent = active ? "♥" : "♡";
+  updateMiniMoreMenuInfo(currentPlayingTrack);
+}
+
+function toggleCurrentFavorite(event) {
+  if (event) event.stopPropagation();
+  if (!currentPlayingTrack) return;
+
+  const track = normalizeFavoriteTrack(currentPlayingTrack);
+  const id = getFavoriteIdentity(track);
+  if (!id) return;
+
+  if (!window.isUserLoggedIn || typeof window.toggleFavoriteSong !== "function") {
+    if (typeof window.showToast === "function") {
+      window.showToast("Vui lòng đăng nhập");
+    } else {
+      alert("Vui lòng đăng nhập");
+    }
+    return;
+  }
+
+  window.toggleFavoriteSong(track);
+}
+
+function sanitizeDownloadFileName(value) {
+  return String(value || "listen-music")
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 90);
+}
+
+function downloadCurrentTrack() {
+  if (!currentPlayingTrack) {
+    alert("Chưa có bài hát đang phát để tải.");
+    return;
+  }
+
+  if (typeof window.saveDownloadedSong === "function") {
+    window.saveDownloadedSong(currentPlayingTrack);
+    return;
+  }
+
+  if (typeof window.toggleDownloadedSong === "function") {
+    window.toggleDownloadedSong(currentPlayingTrack);
+    return;
+  }
+
+  alert("Chức năng Đã Tải chưa sẵn sàng. Vui lòng thử lại sau.");
+}
+
+function playDownloadedTrack(track) {
+  if (!track) return;
+
+  if (isCurrentPlaybackTrack(track)) {
+    togglePlay();
+    return;
+  }
+
+  if (track.videoId) {
+    userPausedPlayback = false;
+    playYouTube(track.videoId, track.title || "Bài hát", {
+      artist: track.artist || "Nguồn nhạc",
+      image: track.thumbnail || track.image,
+    });
+    return;
+  }
+
+  if (track.trackId || track.id) {
+    audiusTracks = [
+      {
+        id: track.trackId || track.id,
+        title: track.title,
+        duration: track.duration,
+        artwork: track.artwork,
+        user: { name: track.artist || "Audius Artist" },
+      },
+    ];
+    playAudiusTrack(0);
+  }
+}
+
+function showMiniPlayer() {
   document.querySelector(".player-bar").classList.add("active");
-  setPlayPauseIcon(true);
+}
+
+function stopYouTubePlayback() {
+  stopYouTubeProgressTimer();
+  if (ytPlayer && ytReady && typeof ytPlayer.stopVideo === "function") {
+    ytPlayer.stopVideo();
+  }
+}
+
+function stopYouTubeProgressTimer() {
+  if (youtubeProgressTimer) {
+    clearInterval(youtubeProgressTimer);
+    youtubeProgressTimer = null;
+  }
+}
+
+function startYouTubeProgressTimer() {
+  stopYouTubeProgressTimer();
+  youtubeProgressTimer = setInterval(updateProgress, 500);
 }
 
 function prevSong() {
-  if (currentAudioSource === "localChart") {
-    if (currentLocalChartIndex > 0) {
-      playLocalChartTrack(currentLocalChartIndex - 1);
+  if (currentAudioSource === "youtube") {
+    if (currentYouTubeIndex > 0) {
+      playYouTubeFromQueue(currentYouTubeIndex - 1);
+    } else if (ytPlayer && ytReady) {
+      userPausedPlayback = false;
+      ytPlayer.seekTo(0, true);
+      ytPlayer.playVideo();
+      setPlayPauseIcon(true);
+    }
+    return;
+  }
+
+  if (currentAudioSource === "chart") {
+    if (currentChartIndex > 0) {
+      playChartTrack(currentChartIndex - 1);
+    } else if (ytPlayer && ytReady && typeof ytPlayer.seekTo === "function") {
+      userPausedPlayback = false;
+      ytPlayer.seekTo(0, true);
+      ytPlayer.playVideo();
+      setPlayPauseIcon(true);
     } else if (currentAudio) {
+      userPausedPlayback = false;
       currentAudio.currentTime = 0;
       currentAudio.play();
       setPlayPauseIcon(true);
@@ -119,6 +680,7 @@ function prevSong() {
     if (currentAudiusIndex > 0) {
       playAudiusTrack(currentAudiusIndex - 1);
     } else if (currentAudio) {
+      userPausedPlayback = false;
       currentAudio.currentTime = 0;
       currentAudio.play();
       setPlayPauseIcon(true);
@@ -126,24 +688,30 @@ function prevSong() {
     return;
   }
 
-  if (currentIndex - 1 >= 0) {
-    playSound(currentIndex - 1);
-  } else {
-    if (currentAudio) {
-      currentAudio.currentTime = 0;
-      currentAudio.play();
-      setPlayPauseIcon(true);
-      updatePlayBtn(); // ← add
-    }
+  if (currentAudio) {
+    userPausedPlayback = false;
+    currentAudio.currentTime = 0;
+    currentAudio.play();
+    setPlayPauseIcon(true);
+    updatePlayBtn();
   }
 }
 
 function nextSong() {
-  if (currentAudioSource === "localChart") {
-    if (currentLocalChartIndex + 1 < localChartTracks.length) {
-      playLocalChartTrack(currentLocalChartIndex + 1);
-    } else if (localChartTracks.length > 0) {
-      playLocalChartTrack(0);
+  if (currentAudioSource === "youtube") {
+    if (currentYouTubeIndex + 1 < youtubePlaybackQueue.length) {
+      playYouTubeFromQueue(currentYouTubeIndex + 1);
+    } else if (youtubePlaybackQueue.length > 0) {
+      playYouTubeFromQueue(0);
+    }
+    return;
+  }
+
+  if (currentAudioSource === "chart") {
+    if (currentChartIndex + 1 < chartTracks.length) {
+      playChartTrack(currentChartIndex + 1);
+    } else if (chartTracks.length > 0) {
+      playChartTrack(0);
     }
     return;
   }
@@ -157,42 +725,37 @@ function nextSong() {
     return;
   }
 
-  if (currentIndex + 1 < totalSongs) {
-    playSound(currentIndex + 1);
-  } else {
-    playSound(0);
-  }
 }
 
 function togglePlay() {
-  if (!currentAudio) {
-    playSound(0);
+  if (currentAudioSource === "youtube" || (currentAudioSource === "chart" && ytPlayer && ytReady)) {
+    if (!ytPlayer || !ytReady || typeof ytPlayer.getPlayerState !== "function") return;
+    const state = ytPlayer.getPlayerState();
+    if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) {
+      userPausedPlayback = true;
+      ytPlayer.pauseVideo();
+      setPlayPauseIcon(false);
+    } else {
+      userPausedPlayback = false;
+      ytPlayer.playVideo();
+      setPlayPauseIcon(true);
+    }
     return;
   }
 
+  if (!currentAudio) return;
+
   if (currentAudio.paused) {
+    userPausedPlayback = false;
     currentAudio.play();
     setPlayPauseIcon(true);
   } else {
+    userPausedPlayback = true;
     currentAudio.pause();
     setPlayPauseIcon(false);
   }
   updatePlayBtn();
 }
-
-// ============================
-// DRUM BUTTONS
-// ============================
-
-document.querySelectorAll(".drum").forEach(function (btn, index) {
-  var img = document.createElement("img");
-  img.src = "images/x" + (index + 1) + ".jpg";
-  btn.appendChild(img);
-
-  btn.addEventListener("click", function () {
-    playSound(index);
-  });
-});
 
 // ============================
 // KEYBOARD CONTROL
@@ -204,11 +767,11 @@ document.addEventListener("keydown", function (e) {
   switch (e.key) {
     case "ArrowUp":
       e.preventDefault();
-      if (currentAudio) updateVolume(Math.min(100, Math.round(currentAudio.volume * 100) + 10));
+      updateVolume(Math.min(100, parseInt(document.getElementById("volumeSlider").value || "100", 10) + 10));
       break;
     case "ArrowDown":
       e.preventDefault();
-      if (currentAudio) updateVolume(Math.max(0, Math.round(currentAudio.volume * 100) - 10));
+      updateVolume(Math.max(0, parseInt(document.getElementById("volumeSlider").value || "100", 10) - 10));
       break;
     case "ArrowRight":
       e.preventDefault();
@@ -231,13 +794,14 @@ document.addEventListener("keydown", function (e) {
 
 function updateVolume(value) {
   if (currentAudio) currentAudio.volume = value / 100;
+  if (ytPlayer && ytReady && typeof ytPlayer.setVolume === "function") ytPlayer.setVolume(value);
   document.getElementById("volumeSlider").value = value;
   document.getElementById("volumeText").textContent = value;
 
   var icon = document.getElementById("volumeIcon");
-  if (value == 0) icon.textContent = "🔇";
-  else if (value < 50) icon.textContent = "🔉";
-  else icon.textContent = "🔊";
+  if (value == 0) icon.textContent = "Mute";
+  else if (value < 50) icon.textContent = "Vol";
+  else icon.textContent = "Vol";
 }
 
 document.getElementById("volumeSlider").addEventListener("input", function () {
@@ -252,7 +816,7 @@ function toggleMute() {
     updateVolume(lastVolume);
     isMuted = false;
   } else {
-    lastVolume = Math.round(currentAudio ? currentAudio.volume * 100 : 100);
+    lastVolume = parseInt(document.getElementById("volumeSlider").value || "100", 10);
     updateVolume(0);
     isMuted = true;
   }
@@ -373,6 +937,122 @@ if (document.readyState === "loading") {
   initHomeAdRotation();
 }
 
+const VIP_AD_LAST_KEY = "listen_music_last_vip_ad_index";
+const VIP_POPUP_ADS = [
+  {
+    plan: "BASIC",
+    title: "Muốn nghe nhạc không quảng cáo?",
+    copy: "Gói Basic giúp bạn loại bỏ quảng cáo, nghe nhạc 320kbps và tải tối đa 100 bài yêu thích.",
+    price: "29K",
+    cycle: "/tháng",
+    benefits: ["Không quảng cáo", "320kbps", "Tải 100 bài"],
+    colors: ["#7c3aed", "#db2777"],
+  },
+  {
+    plan: "PLUS",
+    title: "Playlist của bạn mượt hơn với Plus",
+    copy: "Mở rộng trải nghiệm nghe nhạc với offline lớn hơn, gợi ý cá nhân hóa và ít gián đoạn hơn.",
+    price: "59K",
+    cycle: "/tháng",
+    benefits: ["Tải 1.000 bài", "Gợi ý riêng", "Ưu tiên mới"],
+    colors: ["#8b5cf6", "#0ea5e9"],
+  },
+  {
+    plan: "PRO",
+    title: "Nghe nhiều hơn, giới hạn ít hơn",
+    copy: "Gói Pro dành cho người nghe thường xuyên, tải không giới hạn và được ưu tiên các tính năng mới.",
+    price: "99K",
+    cycle: "/tháng",
+    benefits: ["Tải không giới hạn", "Chất lượng cao", "Hỗ trợ ưu tiên"],
+    colors: ["#f59e0b", "#7c3aed"],
+  },
+  {
+    plan: "YEAR",
+    title: "Tiết kiệm hơn với gói năm",
+    copy: "Thanh toán theo năm để giữ trải nghiệm VIP ổn định, nghe nhạc liền mạch trong thời gian dài.",
+    price: "299K",
+    cycle: "/năm",
+    benefits: ["Basic cả năm", "Giá tốt hơn", "Không quảng cáo"],
+    colors: ["#06b6d4", "#7c3aed"],
+  },
+  {
+    plan: "VIP",
+    title: "Tải nhạc offline cho mọi mood",
+    copy: "Lưu bài hát yêu thích để nghe lại khi học tập, làm việc hoặc thư giãn mà không cần tìm lại.",
+    price: "59K",
+    cycle: "/tháng",
+    benefits: ["Nghe offline", "Thư viện riêng", "Playlist cá nhân"],
+    colors: ["#db2777", "#f97316"],
+  },
+];
+
+function getRandomVipAdIndex() {
+  if (VIP_POPUP_ADS.length <= 1) return 0;
+  const lastIndex = Number(localStorage.getItem(VIP_AD_LAST_KEY));
+  let nextIndex = Math.floor(Math.random() * VIP_POPUP_ADS.length);
+  if (Number.isFinite(lastIndex) && nextIndex === lastIndex) {
+    nextIndex = (nextIndex + 1 + Math.floor(Math.random() * (VIP_POPUP_ADS.length - 1))) % VIP_POPUP_ADS.length;
+  }
+  localStorage.setItem(VIP_AD_LAST_KEY, String(nextIndex));
+  return nextIndex;
+}
+
+function renderVipAd(ad) {
+  const modal = document.getElementById("vipAdModal");
+  if (!modal || !ad) return;
+
+  modal.style.setProperty("--vip-ad-start", ad.colors[0]);
+  modal.style.setProperty("--vip-ad-end", ad.colors[1]);
+  document.getElementById("vipAdPlan").textContent = ad.plan;
+  document.getElementById("vipAdTitle").textContent = ad.title;
+  document.getElementById("vipAdCopy").textContent = ad.copy;
+  document.getElementById("vipAdPrice").textContent = ad.price;
+  document.getElementById("vipAdCycle").textContent = ad.cycle;
+
+  const benefitList = document.getElementById("vipAdBenefits");
+  if (benefitList) {
+    benefitList.innerHTML = "";
+    ad.benefits.forEach((benefit) => {
+      const item = document.createElement("li");
+      item.textContent = benefit;
+      benefitList.appendChild(item);
+    });
+  }
+
+  const action = document.getElementById("vipAdAction");
+  if (action) {
+    action.onclick = function () {
+      window.location.href = "vip.html";
+    };
+  }
+}
+
+function openVipAd() {
+  const overlay = document.getElementById("vipAdOverlay");
+  if (!overlay) return;
+
+  const vipBadge = document.getElementById("vipBadge");
+  if (vipBadge && getComputedStyle(vipBadge).display !== "none") return;
+
+  renderVipAd(VIP_POPUP_ADS[getRandomVipAdIndex()]);
+  overlay.classList.add("open");
+}
+
+function closeVipAd() {
+  const overlay = document.getElementById("vipAdOverlay");
+  if (overlay) overlay.classList.remove("open");
+}
+
+function initVipAdPopup() {
+  setTimeout(openVipAd, 900);
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initVipAdPopup);
+} else {
+  initVipAdPopup();
+}
+
 // ============================
 // PROGRESS BAR
 // ============================
@@ -381,6 +1061,16 @@ function updateProgress() {
   var bar = document.getElementById("progressBar");
   var current = document.getElementById("currentTime");
   var dur = document.getElementById("duration");
+
+  if ((currentAudioSource === "youtube" || currentAudioSource === "chart") && ytPlayer && ytReady && typeof ytPlayer.getDuration === "function") {
+    const duration = ytPlayer.getDuration() || 0;
+    const currentTime = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() || 0 : 0;
+    bar.max = duration || 0;
+    bar.value = currentTime;
+    current.textContent = formatTime(currentTime);
+    dur.textContent = formatTime(duration);
+    return;
+  }
 
   if (!currentAudio || isNaN(currentAudio.duration)) return;
 
@@ -398,6 +1088,10 @@ function formatTime(seconds) {
 }
 
 document.getElementById("progressBar").addEventListener("input", function () {
+  if ((currentAudioSource === "youtube" || currentAudioSource === "chart") && ytPlayer && ytReady && typeof ytPlayer.seekTo === "function") {
+    ytPlayer.seekTo(parseFloat(this.value || "0"), true);
+    return;
+  }
   if (currentAudio) currentAudio.currentTime = this.value;
 });
 
@@ -411,10 +1105,6 @@ function goHistoryBack() {
   history.back();
 }
 
-function goHistoryForward() {
-  history.forward();
-}
-
 function showPage(page) {
   var pageIds = ["homePage", "libraryPage", "favoritePage", "downloadPage", "uploadPage", "mvPage", "artistPage", "artistSongsPage", "top100Page", "zingChartPage", "recentPage", "youtubePage", "aboutPage", "termsPage", "privacyPage"];
   pageIds.forEach(function (p) {
@@ -426,6 +1116,7 @@ function showPage(page) {
   if (target) {
     target.style.display = "block";
     currentPage = page;
+    window.currentPage = page;
   }
 
   if (page === "artistPage") {
@@ -434,6 +1125,22 @@ function showPage(page) {
 
   if (page === "recentPage") {
     renderRecentSongs();
+  }
+
+  if (page === "favoritePage") {
+    renderFavoriteList();
+  }
+
+  if (page === "downloadPage") {
+    if (typeof window.renderDownloadedSongs === "function") {
+      window.renderDownloadedSongs();
+    } else {
+      setTimeout(function () {
+        if (typeof window.renderDownloadedSongs === "function") {
+          window.renderDownloadedSongs();
+        }
+      }, 300);
+    }
   }
 
   if (page === "zingChartPage") {
@@ -454,12 +1161,19 @@ window.onpopstate = function (event) {
     if (target) {
       target.style.display = "block";
       currentPage = event.state.page;
+      window.currentPage = event.state.page;
     }
     if (event.state.page === "artistPage") {
       loadArtistPage();
     }
     if (event.state.page === "recentPage") {
       renderRecentSongs();
+    }
+    if (event.state.page === "favoritePage") {
+      renderFavoriteList();
+    }
+    if (event.state.page === "downloadPage" && typeof window.renderDownloadedSongs === "function") {
+      window.renderDownloadedSongs();
     }
     if (event.state.page === "zingChartPage") {
       renderZingChartPage();
@@ -498,77 +1212,210 @@ function renderFavoriteList() {
   const list = document.getElementById("favoriteList");
   if (!list) return;
 
-  if (!songs.length) {
-    list.innerHTML = '<div class="artist-loading">Dang tai danh sach nhac local...</div>';
+  if (!window.isUserLoggedIn) {
+    list.innerHTML = '<div class="artist-loading">Chưa có bài hát yêu thích.</div>';
     return;
   }
 
-  list.innerHTML = songs
+  const favorites = getFavoriteSongs();
+  if (!favorites.length) {
+    list.innerHTML = '<div class="artist-loading">Chưa có bài hát yêu thích.</div>';
+    return;
+  }
+
+  list.innerHTML = favorites
     .map(
       (song, i) => `
-      <div class="song-item" onclick="playSound(${i})">
+      <div class="song-item" data-playback-id="${getPlaybackId(song)}" onclick="playFavoriteTrack(${i})">
         <span class="song-index" style="color:${COLORS[i % COLORS.length]};font-size:18px;font-weight:700;">
           <span class="song-num">${i + 1}</span>
         </span>
         <div class="song-thumb">
           <div class="song-img-wrap">
-            <img src="${getSongDisplayImage(song, i)}"
+            <img src="${song.image || getSongDisplayImage(song, i)}"
                  onerror="this.style.display='none'" />
-            <span class="song-play-btn">&#9654;</span>
+            <span class="song-play-btn" onclick="handlePlaybackButtonClick(event, () => playFavoriteTrack(${i}))">&#9654;</span>
           </div>
           <span class="song-name">${song.title}</span>
         </div>
         <span class="song-artist">${song.artist}</span>
-        <span class="song-duration" id="dur-${i}">${song.duration ? formatTime(song.duration) : "--:--"}</span>
+        <span class="song-duration" id="favorite-dur-${i}">${getFavoriteDurationLabel(song)}</span>
       </div>
     `,
     )
     .join("");
-
-  loadLocalSongDurations();
+  updatePlaybackItemState();
+  loadFavoriteDurations();
 }
 
-function loadLocalSongDurations() {
-  songs.forEach((song, index) => {
-    if (!song || !song.file || song.durationLoading) return;
-    if (song.duration) {
-      updateSongDurationLabel(index, song.duration);
+function getFavoriteDurationLabel(song) {
+  const liveDuration = getCurrentTrackDuration(song);
+  if (liveDuration) return formatTime(liveDuration);
+
+  if (song.duration) return formatTime(song.duration);
+
+  return "--:--";
+}
+
+function loadFavoriteDurations() {
+  const favorites = getFavoriteSongs();
+  const missingYouTubeIds = [];
+
+  favorites.forEach((song, index) => {
+    const label = document.getElementById(`favorite-dur-${index}`);
+    if (!label) return;
+
+    const knownDuration = getFavoriteDurationLabel(song);
+    if (knownDuration !== "--:--") {
+      label.textContent = knownDuration;
       return;
     }
 
-    song.durationLoading = true;
-    const probe = new Audio();
-    probe.preload = "metadata";
-    probe.src = song.file;
-
-    probe.onloadedmetadata = function () {
-      if (Number.isFinite(probe.duration)) {
-        song.duration = Math.floor(probe.duration);
-        updateSongDurationLabel(index, song.duration);
+    if (song.videoId) {
+      const cachedDuration = readCachedYouTubeDuration(song.videoId);
+      if (cachedDuration) {
+        saveFavoriteDuration(index, song, cachedDuration);
+        label.textContent = formatTime(cachedDuration);
+        return;
       }
-      cleanupDurationProbe(probe);
-    };
+      missingYouTubeIds.push(song.videoId);
+      return;
+    }
 
-    probe.onerror = function () {
-      cleanupDurationProbe(probe);
-    };
   });
+
+  if (missingYouTubeIds.length) {
+    fetchYouTubeDurations(missingYouTubeIds).then((durationMap) => {
+      const latestFavorites = getFavoriteSongs();
+      latestFavorites.forEach((song, index) => {
+        if (!song.videoId || !durationMap[song.videoId]) return;
+        saveFavoriteDuration(index, song, durationMap[song.videoId]);
+        const label = document.getElementById(`favorite-dur-${index}`);
+        if (label) label.textContent = formatTime(durationMap[song.videoId]);
+      });
+    });
+  }
 }
 
-function updateSongDurationLabel(index, duration) {
-  const label = document.getElementById(`dur-${index}`);
-  if (label) label.textContent = formatTime(duration);
+function saveFavoriteDuration(index, song, duration) {
+  if (!duration) return;
+  const favorites = getFavoriteSongs();
+  const current = favorites[index];
+  if (!current || getFavoriteIdentity(current) !== getFavoriteIdentity(song)) return;
+  current.duration = duration;
+  saveFavoriteSongs(favorites);
+  if (typeof window.updateFavoriteSongDuration === "function") {
+    window.updateFavoriteSongDuration(getFavoriteIdentity(current), duration);
+  }
 }
 
-function cleanupDurationProbe(probe) {
-  probe.onloadedmetadata = null;
-  probe.onerror = null;
-  probe.removeAttribute("src");
-  probe.load();
+function readCachedYouTubeDuration(videoId) {
+  const duration = Number(localStorage.getItem(YOUTUBE_DURATION_CACHE_PREFIX + videoId) || 0);
+  return Number.isFinite(duration) && duration > 0 ? duration : 0;
 }
+
+function writeCachedYouTubeDuration(videoId, duration) {
+  if (!videoId || !duration) return;
+  localStorage.setItem(YOUTUBE_DURATION_CACHE_PREFIX + videoId, String(duration));
+}
+
+function fetchYouTubeDurations(videoIds) {
+  const uniqueIds = Array.from(new Set(videoIds)).filter(Boolean);
+  if (!uniqueIds.length) return Promise.resolve({});
+
+  const cachedMap = {};
+  const idsToFetch = uniqueIds.filter((videoId) => {
+    const cachedDuration = readCachedYouTubeDuration(videoId);
+    if (cachedDuration) cachedMap[videoId] = cachedDuration;
+    return !cachedDuration;
+  });
+
+  if (!idsToFetch.length) return Promise.resolve(cachedMap);
+
+  const chunks = [];
+  for (let i = 0; i < idsToFetch.length; i += 50) chunks.push(idsToFetch.slice(i, i + 50));
+
+  return Promise.all(
+    chunks.map((chunk) => {
+      return fetchYouTubeApi("videos", {
+        part: "contentDetails",
+        id: chunk.join(","),
+      })
+        .then((data) => {
+          if (data.error) throw new Error(data.error.message || "YouTube API error");
+          return data.items || [];
+        });
+    }),
+  )
+    .then((groups) => {
+      const durationMap = { ...cachedMap };
+      groups.flat().forEach((item) => {
+        const duration = parseYouTubeIsoDuration(item.contentDetails && item.contentDetails.duration);
+        if (!item.id || !duration) return;
+        durationMap[item.id] = duration;
+        writeCachedYouTubeDuration(item.id, duration);
+      });
+      return durationMap;
+    })
+    .catch((error) => {
+      console.warn("Không lấy được thời lượng YouTube:", error);
+      return cachedMap;
+    });
+}
+
+function parseYouTubeIsoDuration(value) {
+  const match = String(value || "").match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
+  if (!match) return 0;
+  const hours = Number(match[1] || 0);
+  const minutes = Number(match[2] || 0);
+  const seconds = Number(match[3] || 0);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function playFavoriteTrack(index) {
+  const song = getFavoriteSongs()[index];
+  if (!song) return;
+
+  if (isCurrentPlaybackTrack(song)) {
+    togglePlay();
+    return;
+  }
+
+  if (song.type === "youtube" && song.videoId) {
+    playYouTube(song.videoId, song.title, { artist: song.artist, image: song.image });
+    return;
+  }
+
+  if (song.type === "audius" && song.trackId) {
+    audiusTracks = [
+      {
+        id: song.trackId,
+        title: song.title,
+        duration: song.duration,
+        artwork: song.artwork,
+        user: { name: song.artist || "Audius Artist" },
+      },
+    ];
+    playAudiusTrack(0);
+    return;
+  }
+
+}
+
+function removeFavoriteTrack(event, index) {
+  event.stopPropagation();
+  const song = getFavoriteSongs()[index];
+  if (!song) return;
+  if (typeof window.removeFavoriteSong === "function") {
+    window.removeFavoriteSong(getFavoriteIdentity(song));
+  }
+}
+
 const RECENT_SONGS_KEY = "listen_music_recent_songs";
 const RECENT_SONGS_LIMIT = 50;
 const CACHE_7_DAYS = 7 * 24 * 60 * 60 * 1000;
+const ARTIST_PHOTO_CACHE_VERSION = "v7_verified_artist_portraits";
+const ARTIST_DYNAMIC_PHOTO_LOOKUP_ENABLED = true;
 const SEARCH_CACHE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const SEARCH_MIN_QUERY_LENGTH = 1;
 const SEARCH_DEBOUNCE_DELAY = 1200;
@@ -576,8 +1423,14 @@ const YOUTUBE_PAGE_SIZE = 50;
 const SEARCH_RESULTS_COUNT = 50;
 const TOP100_RESULTS_COUNT = 100;
 const EXPLORE_TOPIC_RESULTS_COUNT = 100;
-const VIETNAMESE_CHART_CACHE_KEY = "youtube_vietnamese_all_time_chart_v1";
+const VIETNAMESE_CHART_CACHE_KEY = "db_vietnamese_all_time_chart_v1";
 const VIETNAMESE_CHART_COUNT = 100;
+let currentTop100State = null;
+let artistSongDatabasePromise = null;
+let artistSongDatabaseCache = null;
+let artistSongDatabaseTracks = [];
+let artistPhotoObserver = null;
+let currentArtistDetailIndex = -1;
 
 function getRecentSongs() {
   try {
@@ -607,6 +1460,209 @@ function recordListeningHistory(song) {
   }
 }
 
+function loadArtistSongDatabase(forceReload) {
+  if (!forceReload && artistSongDatabasePromise) return artistSongDatabasePromise;
+
+  artistSongDatabasePromise = fetch("data/artists-by-genre/index.json", {
+    cache: forceReload ? "reload" : "default",
+  })
+    .then((response) => {
+      if (!response.ok) throw new Error("Cannot load artists-by-genre/index.json");
+      return response.json();
+    })
+    .then((indexDb) => {
+      const genres = Array.isArray(indexDb.genres) ? indexDb.genres : [];
+      return Promise.all(
+        genres.map((genre) =>
+          fetch("data/artists-by-genre/" + genre.file, {
+            cache: forceReload ? "reload" : "default",
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error("Cannot load " + genre.file);
+              return response.json();
+            })
+            .then((genreDb) => ({
+              ...genreDb,
+              id: genreDb.id || genre.id,
+              name: genreDb.name || genre.name,
+            })),
+        ),
+      ).then((genreDbs) => ({
+        source: indexDb.source || "artists-by-genre",
+        genres: genreDbs,
+        artists: genreDbs.flatMap((genreDb) =>
+          (genreDb.artists || []).map((artist) => ({
+            ...artist,
+            genreId: genreDb.id,
+            genreName: genreDb.name,
+          })),
+        ),
+      }));
+    })
+    .then((db) => {
+      artistSongDatabaseCache = db || {};
+      artistSongDatabaseTracks = flattenArtistSongDatabase(artistSongDatabaseCache);
+      return artistSongDatabaseCache;
+    });
+
+  return artistSongDatabasePromise;
+}
+
+function flattenArtistSongDatabase(db) {
+  const tracks = [];
+  (db.artists || []).forEach((artist, artistIndex) => {
+    const songs = artist.songs || artist.videos || [];
+    songs.forEach((song, songIndex) => {
+      const item = normalizeDatabaseSongToYouTubeItem(artist, song, artistIndex, songIndex);
+      if (item) tracks.push(item);
+    });
+  });
+  return tracks;
+}
+
+function normalizeDatabaseSongToYouTubeItem(artist, song, artistIndex, songIndex) {
+  const youtube = (song && song.youtube) || {};
+  const videoId = youtube.videoId || song.videoId || "";
+  if (!videoId) return null;
+
+  const artistName = song.artist || artist.name || "Nguồn nhạc";
+  const songTitle = song.title || song.song || youtube.title || "Bài hát";
+  const thumb = youtube.thumbnail || song.thumbnail || song.thumb || getYouTubeVideoThumbUrl(videoId);
+  const aliases = Array.isArray(artist.aliases) ? artist.aliases : [];
+  const titleForSearch = youtube.title || songTitle;
+  const channelTitle = song.channelTitle || youtube.channel || artistName;
+  const searchText = [songTitle, titleForSearch, artistName, artist.name, aliases.join(" "), channelTitle, youtube.query, artist.genreName].join(" ");
+
+  return {
+    id: { videoId },
+    snippet: {
+      title: songTitle,
+      channelTitle,
+      description: youtube.title || "",
+      publishedAt: youtube.lastCheckedAt || artist.youtubeLastCheckedAt || "",
+      thumbnails: {
+        default: { url: thumb },
+        medium: { url: thumb },
+        high: { url: thumb },
+      },
+    },
+    dbArtist: artistName,
+    dbArtistId: artist.id || "",
+    dbSongTitle: songTitle,
+    dbSearchText: normalizeSearchText(searchText),
+    dbArtistText: normalizeSearchText([artistName, artist.name, aliases.join(" ")].join(" ")),
+    dbTitleText: normalizeSearchText([songTitle, titleForSearch].join(" ")),
+    dbIndex: artistIndex * 1000 + songIndex,
+    type: "youtube",
+  };
+}
+
+function isGenericMusicQuery(query) {
+  const value = normalizeSearchText(query);
+  return /\b(nhac|music|vpop|viet|vietnam|top|hit|hay nhat|trending|playlist|remix|bolero|ballad|rap|pop|chill|official|mv|audio)\b/.test(value);
+}
+
+function scoreDatabaseTrack(item, query) {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return 1;
+
+  const title = item.dbTitleText || "";
+  const artist = item.dbArtistText || "";
+  const haystack = item.dbSearchText || "";
+  const tokens = normalizedQuery.split(" ").filter(Boolean);
+  let score = 0;
+
+  if (title === normalizedQuery) score += 140;
+  if (artist === normalizedQuery) score += 120;
+  if (title.includes(normalizedQuery)) score += 95;
+  if (artist.includes(normalizedQuery)) score += 85;
+  if (haystack.includes(normalizedQuery)) score += 65;
+
+  tokens.forEach((token) => {
+    if (title.includes(token)) score += 12;
+    if (artist.includes(token)) score += 10;
+    if (haystack.includes(token)) score += 4;
+  });
+
+  return score;
+}
+
+function getScoredDatabaseTracks(query) {
+  return artistSongDatabaseTracks
+    .map((item) => ({ item, score: scoreDatabaseTrack(item, query) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.item.dbIndex - b.item.dbIndex)
+    .map((entry) => entry.item);
+}
+
+function buildDatabaseSearchResults(query, totalResults) {
+  const limit = totalResults || SEARCH_RESULTS_COUNT;
+  const scored = getScoredDatabaseTracks(query);
+
+  if (scored.length >= limit || !isGenericMusicQuery(query)) return uniqueVideosById(scored).slice(0, limit);
+
+  const seen = new Set(scored.map((item) => getVideoIdFromItem(item)));
+  const fallback = artistSongDatabaseTracks.filter((item) => !seen.has(getVideoIdFromItem(item)));
+  return uniqueVideosById(scored.concat(fallback)).slice(0, limit);
+}
+
+function fetchMusicDatabaseVideos(query, totalResults, forceReload) {
+  return loadArtistSongDatabase(forceReload).then(() => {
+    const results = buildDatabaseSearchResults(query, totalResults);
+    if (results.length || forceReload) return results;
+
+    return loadArtistSongDatabase(true).then(() => buildDatabaseSearchResults(query, totalResults));
+  });
+}
+
+function getDatabaseArtists(forceReload) {
+  return loadArtistSongDatabase(forceReload).then((db) =>
+    (db.artists || [])
+      .filter((artist) => hasPlayableArtistVideos(artist))
+      .map((artist, index) => {
+      const songs = artist.songs || artist.videos || [];
+      const firstSong = songs.find((song) => (song.youtube && song.youtube.videoId) || song.videoId) || songs[0] || {};
+      const explicitPhoto = artist.photo || artist.image || artist.avatar || artist.picture || "";
+      const seedArtist = findMusicSourceArtistSeed(artist.name);
+      const seedPhoto = seedArtist && seedArtist.photo ? seedArtist.photo : "";
+      const firstSongVideoId = (firstSong.youtube && firstSong.youtube.videoId) || firstSong.videoId || "";
+      const firstSongThumb = (firstSong.youtube && firstSong.youtube.thumbnail) || firstSong.thumbnail || firstSong.thumb || (firstSongVideoId ? getYouTubeVideoThumbUrl(firstSongVideoId) : "");
+      const photo = explicitPhoto || seedPhoto || "";
+      return {
+        artist: artist.name,
+        source: artist.genreName || "Database",
+        song: firstSong.title || "",
+        songCount: songs.length,
+        sourceRank: index + 1,
+        aliases: artist.aliases || [],
+        preferSongThumb: false,
+        fallbackPhoto: firstSongThumb,
+        photo,
+      };
+    }),
+  );
+}
+
+function hasPlayableArtistVideos(artist) {
+  return ((artist && (artist.songs || artist.videos)) || []).some((song) => song && (song.videoId || (song.youtube && song.youtube.videoId)));
+}
+
+function getDatabaseArtistSongs(artistName, limit) {
+  const target = normalizeSearchText(artistName);
+  return loadArtistSongDatabase().then((db) => {
+    const artist = (db.artists || []).find((item) => {
+      const aliases = [item.name].concat(item.aliases || []).map(normalizeSearchText);
+      return aliases.some((alias) => alias && (alias === target || alias.includes(target) || target.includes(alias)));
+    });
+    if (!artist) return fetchMusicDatabaseVideos(artistName, limit || 120);
+
+    return (artist.songs || artist.videos || [])
+      .map((song, index) => normalizeDatabaseSongToYouTubeItem(artist, song, 0, index))
+      .filter(Boolean)
+      .slice(0, limit || 120);
+  });
+}
+
 function renderRecentSongs() {
   const list = document.getElementById("recentSongList");
   if (!list) return;
@@ -623,11 +1679,11 @@ function renderRecentSongs() {
       const artist = song.artist || "Unknown Artist";
       const time = song.playedAt ? new Date(song.playedAt).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }) : "";
       return `
-        <div class="recent-song-row" onclick="playRecentSong(${i})">
+        <div class="recent-song-row" data-playback-id="${getPlaybackId(song)}" onclick="playRecentSong(${i})">
           <div class="recent-rank">${i + 1}</div>
           <div class="recent-thumb">
             <img src="${image}" alt="${song.title}" />
-            <span>&#9654;</span>
+            <span onclick="handlePlaybackButtonClick(event, () => playRecentSong(${i}))">&#9654;</span>
           </div>
           <div class="recent-info">
             <div class="recent-title">${song.title}</div>
@@ -637,21 +1693,21 @@ function renderRecentSongs() {
       `;
     })
     .join("");
+  updatePlaybackItemState();
 }
 
 function getSourceLabel(type) {
   if (type === "audius") return "Audius";
-  if (type === "youtube") return "YouTube";
-  return "Local";
+  if (type === "youtube") return "Nguồn nhạc";
+  return "Listen Music";
 }
 
 function playRecentSong(index) {
   const song = getRecentSongs()[index];
   if (!song) return;
 
-  if (song.file) {
-    const localIndex = songs.findIndex((item) => item.file === song.file);
-    if (localIndex !== -1) playSound(localIndex);
+  if (isCurrentPlaybackTrack(song)) {
+    togglePlay();
     return;
   }
 
@@ -670,7 +1726,10 @@ function playRecentSong(index) {
   }
 
   if (song.type === "youtube" && song.videoId) {
-    playYouTube(song.videoId, song.title);
+    playYouTube(song.videoId, song.title, {
+      artist: song.artist || song.channelTitle || "Nguồn nhạc",
+      image: song.image || song.thumb || getYouTubeVideoThumbUrl(song.videoId),
+    });
   }
 }
 
@@ -687,31 +1746,9 @@ function loadVietnameseYouTubeChart(forceReload) {
   const list = document.getElementById("zingChartList");
   if (!list) return;
 
-  const cached = !forceReload ? readTimedCache(VIETNAMESE_CHART_CACHE_KEY, CACHE_7_DAYS) : null;
-  if (cached && Array.isArray(cached.items) && cached.items.length) {
-    localChartTracks = cached.items;
-    renderVietnameseYouTubeChart(localChartTracks);
-    return;
-  }
-
-  list.innerHTML = '<div class="artist-loading">Đang tải BXH nhạc Việt từ YouTube...</div>';
-
-  fetchVietnameseYouTubeChart(VIETNAMESE_CHART_COUNT)
-    .then((items) => {
-      localChartTracks = items;
-      writeTimedCache(VIETNAMESE_CHART_CACHE_KEY, { items });
-      renderVietnameseYouTubeChart(localChartTracks);
-    })
-    .catch((error) => {
-      console.error("Vietnamese YouTube chart failed:", error);
-      list.innerHTML = `
-        <div class="t100-error-box">
-          <div class="t100-error-title">Không tải được BXH Music từ YouTube</div>
-          <div class="t100-error-body">${error && error.message ? error.message : "Vui lòng kiểm tra kết nối mạng hoặc YouTube API key."}</div>
-          <button class="t100-retry-btn" onclick="loadVietnameseYouTubeChart(true)">Thử lại</button>
-        </div>
-      `;
-    });
+  localStorage.removeItem(VIETNAMESE_CHART_CACHE_KEY);
+  chartTracks = [];
+  renderVietnameseYouTubeChart(chartTracks);
 }
 
 function renderVietnameseYouTubeChart(items) {
@@ -719,7 +1756,7 @@ function renderVietnameseYouTubeChart(items) {
   if (!list) return;
 
   if (!items || !items.length) {
-    list.innerHTML = '<div class="artist-loading">Không tìm thấy BXH nhạc Việt từ YouTube.</div>';
+    list.innerHTML = "";
     return;
   }
 
@@ -727,15 +1764,15 @@ function renderVietnameseYouTubeChart(items) {
     .map((song, i) => {
       const medal = getChartMedalClass(i);
       const image = song.thumb || getYouTubeVideoThumbUrl(song.videoId);
-      const title = song.song || song.title || "Bài hát";
-      const artist = song.artist || song.channelTitle || "YouTube";
-      const views = song.viewCount ? `YouTube · ${formatViewCount(song.viewCount)}` : "YouTube";
+      const title = cleanYouTubeTitle(song.title || song.song || "Bài hát");
+      const artist = song.artist || song.channelTitle || "Nguồn nhạc";
+      const views = song.viewCount ? formatViewCount(song.viewCount) : "Nguồn nhạc";
       return `
-        <div class="chart-row local-chart-row" onclick="playLocalChartTrack(${i})">
+        <div class="chart-row chart-source-row" data-playback-id="${getPlaybackId(song)}" onclick="playChartTrack(${i})">
           <div class="chart-rank ${medal}">${i + 1}</div>
           <div class="chart-thumb">
             <img src="${image}" alt="${title}" />
-            <span>&#9654;</span>
+            <span onclick="handlePlaybackButtonClick(event, () => playChartTrack(${i}))">&#9654;</span>
           </div>
           <div class="chart-info">
             <div class="chart-title">${title}</div>
@@ -745,16 +1782,7 @@ function renderVietnameseYouTubeChart(items) {
       `;
     })
     .join("");
-}
-
-function getUniqueSongs(source) {
-  const seen = new Set();
-  return source.filter((song) => {
-    const key = normalizeSongIdentity(song.title, song.artist);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  updatePlaybackItemState();
 }
 
 function normalizeSongIdentity(title, artist) {
@@ -774,18 +1802,24 @@ function getChartMedalClass(index) {
 }
 
 function fetchVietnameseYouTubeChart(limit) {
-  const queries = ["nhạc việt official music video", "vpop official music video", "nhạc trẻ việt nam official mv", "vietnamese music official video", "bolero việt nam official music video"];
-
-  return promisePool(queries, 2, (query) => fetchYouTubeMostViewedVideos(query, 50).catch(() => []))
-    .then((groups) => uniqueVideosById(groups.flat()))
-    .then((items) => fetchYouTubeVideoStatistics(items))
-    .then((videos) =>
-      videos
-        .map(normalizeVietnameseChartVideo)
-        .filter(Boolean)
-        .sort((a, b) => Number(b.viewCount || 0) - Number(a.viewCount || 0))
-        .slice(0, limit || VIETNAMESE_CHART_COUNT),
-    );
+  return fetchMusicDatabaseVideos("nhạc việt vpop official music", limit || VIETNAMESE_CHART_COUNT).then((items) =>
+    items.map((item, index) => {
+      const videoId = getVideoIdFromItem(item);
+      const snippet = item.snippet || {};
+      const thumbs = snippet.thumbnails || {};
+      return {
+        type: "youtube",
+        artist: item.dbArtist || snippet.channelTitle || "Nguồn nhạc",
+        song: item.dbSongTitle || snippet.title || "Bài hát",
+        title: snippet.title || item.dbSongTitle || "Bài hát",
+        channelTitle: snippet.channelTitle || item.dbArtist || "Nguồn nhạc",
+        thumb: (thumbs.high || thumbs.medium || thumbs.default || {}).url || getYouTubeVideoThumbUrl(videoId),
+        videoId,
+        viewCount: Math.max(1, (limit || VIETNAMESE_CHART_COUNT) - index) * 1000,
+        publishedAt: snippet.publishedAt || "",
+      };
+    }),
+  );
 }
 
 function fetchYouTubeMostViewedVideos(query, totalResults) {
@@ -802,40 +1836,27 @@ function fetchYouTubeMostViewedVideos(query, totalResults) {
     });
   };
 
-  const tryFetchWithKey = (keysLeft) => {
-    if (keysLeft <= 0) return Promise.reject(new Error("Quota exceeded: tất cả API key đã hết quota!"));
-    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&order=viewCount&safeSearch=none&regionCode=VN&relevanceLanguage=vi` + `&q=${encodeURIComponent(query)}&key=${getYTApiKey()}`;
+  const fetchPage = (pageToken) => {
+    if (items.length >= totalResults) return Promise.resolve(items.slice(0, totalResults));
+    const remaining = totalResults - items.length;
+    const size = Math.min(pageSize, remaining);
 
-    const fetchPage = (pageToken) => {
-      if (items.length >= totalResults) return Promise.resolve(items.slice(0, totalResults));
-      const remaining = totalResults - items.length;
-      const size = Math.min(pageSize, remaining);
-      const tokenPart = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
-
-      return fetch(`${apiUrl}&maxResults=${size}${tokenPart}`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.error) {
-            const msg = data.error.message || "YouTube API error";
-            if (isYouTubeQuotaError(new Error(msg))) {
-              rotateYTApiKey();
-              items = [];
-              seenVideoIds.clear();
-              return tryFetchWithKey(keysLeft - 1);
-            }
-            throw new Error(msg);
-          }
-
-          appendUniqueVideos(data.items);
-          if (!data.nextPageToken || items.length >= totalResults) return items.slice(0, totalResults);
-          return fetchPage(data.nextPageToken);
-        });
-    };
-
-    return fetchPage("");
+    return fetchYouTubeApi("search", {
+      part: "snippet",
+      type: "video",
+      order: "viewCount",
+      q: query,
+      maxResults: size,
+      pageToken,
+    }).then((data) => {
+      if (data.error) throw new Error(data.error.message || "YouTube API error");
+      appendUniqueVideos(data.items);
+      if (!data.nextPageToken || items.length >= totalResults) return items.slice(0, totalResults);
+      return fetchPage(data.nextPageToken);
+    });
   };
 
-  return tryFetchWithKey(YT_API_KEYS.length);
+  return fetchPage("").then((items) => filterPlayableMusicVideos(items, { query, limit: totalResults }));
 }
 
 function normalizeVietnameseChartVideo(video) {
@@ -843,9 +1864,7 @@ function normalizeVietnameseChartVideo(video) {
   const rawTitle = snippet.title || "";
   const title = cleanYouTubeTitle(rawTitle);
   const normalized = normalizeSearchText(`${rawTitle} ${snippet.channelTitle || ""}`);
-  const blocked = /\b(karaoke|beat|instrumental|reaction|trailer|teaser|shorts?|livestream|live stream|phim|hai|hài|review|playlist|lien khuc|liên khúc|tuyen tap|tuyển tập)\b/i;
-
-  if (!title || isPlaylistLikeVideoTitle(title) || blocked.test(normalized)) return null;
+  if (!title) return null;
 
   const stats = video.statistics || {};
   const thumbs = snippet.thumbnails || {};
@@ -853,7 +1872,7 @@ function normalizeVietnameseChartVideo(video) {
   const viewCount = Number(stats.viewCount || 0);
   if (!videoId || viewCount <= 0) return null;
 
-  const artist = extractArtistFromVideoTitle(title, snippet.channelTitle || "") || cleanupArtistName(snippet.channelTitle || "YouTube");
+  const artist = extractArtistFromVideoTitle(title, snippet.channelTitle || "") || cleanupArtistName(snippet.channelTitle || "Nguồn nhạc");
   const song = cleanupSongTitle(extractSongFromVideoTitle(title) || title);
   const thumb = (thumbs.high || thumbs.medium || thumbs.default || {}).url || getYouTubeVideoThumbUrl(videoId);
   const vietnameseSignal = /[à-ỹđ]/i.test(`${rawTitle} ${snippet.channelTitle || ""}`) || /\b(vpop|viet|vietnam|việt|nhạc)\b/i.test(`${rawTitle} ${snippet.channelTitle || ""}`);
@@ -865,7 +1884,7 @@ function normalizeVietnameseChartVideo(video) {
     artist,
     song,
     title: rawTitle,
-    channelTitle: snippet.channelTitle || "YouTube",
+    channelTitle: snippet.channelTitle || "Nguồn nhạc",
     thumb,
     videoId,
     viewCount,
@@ -873,82 +1892,39 @@ function normalizeVietnameseChartVideo(video) {
   };
 }
 
-function loadLocalMusic(forceReload) {
-  const list = document.getElementById("zingChartList");
-
-  return fetch("songs.json", { cache: forceReload ? "reload" : "default" })
-    .then((response) => {
-      if (!response.ok) throw new Error("Cannot load songs.json");
-      return response.json();
-    })
-    .then((items) => {
-      songs = Array.isArray(items) ? items.map((song) => ({ ...song, type: "local" })) : [];
-      totalSongs = songs.length;
-      renderFavoriteList();
-      return songs;
-    })
-    .catch(() => {
-      songs = [];
-      totalSongs = 0;
-      renderFavoriteList();
-      return [];
-    });
-}
-
-function loadLocalChart100(forceReload) {
-  loadVietnameseYouTubeChart(forceReload);
-}
-
-function playLocalChartTrack(index) {
-  const song = localChartTracks[index];
+function playChartTrack(index) {
+  const song = chartTracks[index];
   if (!song) return;
-  if (song.type === "youtube" && song.videoId) {
-    currentAudioSource = "localChart";
-    currentLocalChartIndex = index;
-    playYouTube(song.videoId, song.title || song.song || "Bài hát");
+  if (isCurrentPlaybackTrack(song)) {
+    togglePlay();
     return;
   }
-  const localIndex = songs.findIndex((item) => item.file === song.file);
-  currentAudioSource = "localChart";
-  currentLocalChartIndex = index;
-  playSound(localIndex !== -1 ? localIndex : index);
-  currentAudioSource = "localChart";
-  currentLocalChartIndex = index;
+  if (song.type === "youtube" && song.videoId) {
+    currentAudioSource = "chart";
+    currentChartIndex = index;
+    playYouTube(song.videoId, cleanYouTubeTitle(song.title || song.song || "Bai hat"), {
+      artist: song.artist || song.channelTitle || "Nguồn nhạc",
+      image: song.thumb || song.image || getYouTubeVideoThumbUrl(song.videoId),
+      source: "chart",
+    });
+  }
 }
 
-function initializeLocalMusic() {
+function initializeMusic() {
   renderFavoriteList();
-  loadLocalMusic();
 }
 
-initializeLocalMusic();
-
-const LOCAL_COVER_VERSION = "20260524";
+initializeMusic();
 
 function getSongDisplayImage(song, index) {
-  if (song && song.image) return versionLocalCover(song.image);
+  if (song && song.image) return song.image;
   if (song && song.artwork) {
     const artwork = song.artwork;
     const artUrl = artwork["480x480"] || artwork["150x150"] || artwork["1000x1000"];
     if (artUrl) return artUrl;
   }
 
-  const localImage = getLocalSongImage(song);
-  if (localImage) return localImage;
-
   return buildSongPlaceholder(song && song.title ? song.title : "Music", index);
-}
-
-function versionLocalCover(image) {
-  if (/^images\/covers\//i.test(image || "")) return `${image}?v=${LOCAL_COVER_VERSION}`;
-  return image;
-}
-
-function getLocalSongImage(song) {
-  if (!song || !song.file) return "";
-  const fileName = song.file.replace("sounds/", "").replace(".mp3", ".jpg");
-  if (/^x\d+\.jpg$/i.test(fileName)) return `images/${fileName}`;
-  return "";
 }
 
 function buildSongPlaceholder(title, index) {
@@ -990,9 +1966,12 @@ const searchWrapper = document.getElementById("searchWrapper");
 const searchClear = document.getElementById("searchClear");
 
 searchInput.addEventListener("focus", () => {
-  searchWrapper.classList.add("active");
-  renderHistory();
-  searchDropdown.style.display = "block";
+  if (searchInput.value.trim()) {
+    searchWrapper.classList.add("active");
+    searchDropdown.style.display = "block";
+    return;
+  }
+  showSearchHomeDropdown(true);
 });
 
 document.addEventListener("click", (e) => {
@@ -1002,9 +1981,48 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Tiết kiệm quota: hiện cache ngay, chỉ gọi YouTube API sau khi user ngừng gõ.
+// Tìm kiếm từ database nội bộ để không tốn quota YouTube Search API.
 let searchDebounceTimer = null;
 let lastSubmittedSearchQuery = "";
+let searchRequestToken = 0;
+let searchSuggestionOpenCount = 0;
+let dynamicTrendingSearchSuggestions = [];
+const TRENDING_SEARCH_CACHE_KEY = "listen_music_trending_search_suggestions_v1";
+const TRENDING_SEARCH_CACHE_AGE = 30 * 60 * 1000;
+const SEARCH_CACHE_VERSION = "db_search_music_v3";
+
+const TRENDING_SEARCH_SUGGESTIONS = [
+  "bên ấy em có ai rồi",
+  "50 năm về sau",
+  "hạt mưa vương vấn",
+  "gió đêm qua đường",
+  "mất bảo",
+  "cụ tuyệt",
+  "nơi này có anh",
+  "hồn lễ của em",
+  "không buông",
+  "e là không thể",
+  "nhường lại nỗi đau",
+  "thiệp hồng sai tên",
+  "sóng gió",
+  "bạc phận",
+  "đom đóm",
+  "chúng ta của hiện tại",
+  "đừng làm trái tim anh đau",
+  "chăm hoa",
+  "tái sinh",
+  "anh đâu từ lúc em đi",
+  "có chắc yêu là đây",
+  "thủy triều",
+  "ngày mai người ta lấy chồng",
+  "rồi tới luôn",
+  "cắt đôi nỗi sầu",
+  "vaicaunoicokhiennguoithaydoi",
+  "nấu ăn cho em",
+  "vì mẹ anh bắt chia tay",
+  "waiting for you",
+  "em xinh",
+];
 
 searchInput.addEventListener("input", () => {
   const q = searchInput.value.trim().toLowerCase();
@@ -1012,17 +2030,17 @@ searchInput.addEventListener("input", () => {
 
   if (!q) {
     document.getElementById("searchResults").style.display = "none";
-    document.getElementById("searchHistory").style.display = "block";
-    renderHistory();
+    showSearchHomeDropdown(false);
     clearTimeout(searchDebounceTimer);
     return;
   }
 
+  document.getElementById("searchSuggestions").style.display = "none";
   document.getElementById("searchHistory").style.display = "none";
   document.getElementById("searchResults").style.display = "block";
   clearTimeout(searchDebounceTimer);
 
-  renderCachedYouTubeSearch(q);
+  const hasCachedResults = renderCachedYouTubeSearch(q);
 
   const list = document.getElementById("resultList");
   if (q.length < SEARCH_MIN_QUERY_LENGTH) {
@@ -1030,8 +2048,8 @@ searchInput.addEventListener("input", () => {
     return;
   }
 
-  if (!list.innerHTML.trim()) {
-    list.innerHTML = '<div class="yt-loading">Đang tìm trên YouTube...</div>';
+  if (!hasCachedResults) {
+    list.innerHTML = '<div class="yt-loading">Đang tìm kiếm...</div>';
   }
 
   searchDebounceTimer = setTimeout(() => {
@@ -1042,10 +2060,7 @@ searchInput.addEventListener("input", () => {
 // Nhấn Enter → tìm ngay, không chờ debounce
 searchInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
-    const q = searchInput.value.trim().toLowerCase();
-    clearTimeout(searchDebounceTimer);
-    if (q.length < SEARCH_MIN_QUERY_LENGTH) return;
-    searchYouTube(q);
+    submitHeaderSearch();
   }
   if (e.key === "Escape") {
     searchDropdown.style.display = "none";
@@ -1054,67 +2069,20 @@ searchInput.addEventListener("keydown", (e) => {
   }
 });
 
-function playFromSearch(index, title) {
-  addToHistory(title);
-  playSound(index);
-  searchInput.value = "";
-  searchClear.style.display = "none";
-  showSearchHistoryDropdown();
-  showPage("favoritePage");
-  setActive(document.querySelector(".sidebar-menu a:nth-child(2)"));
-}
+function submitHeaderSearch() {
+  const q = searchInput.value.trim();
+  clearTimeout(searchDebounceTimer);
+  searchWrapper.classList.add("active");
+  searchDropdown.style.display = "block";
 
-function searchLocalTracks(query, playFirst) {
-  const list = document.getElementById("resultList");
-  if (!list || !query) return;
-
-  const normalizedQuery = normalizeSongIdentity(query, "");
-  const results = songs
-    .filter((song) => {
-      const haystack = normalizeSongIdentity(song.title, song.artist);
-      return haystack.includes(normalizedQuery);
-    })
-    .slice(0, 10);
-
-  if (!results.length) {
-    list.innerHTML = "";
+  if (q.length < SEARCH_MIN_QUERY_LENGTH) {
+    searchInput.focus();
+    showSearchHomeDropdown(false);
     return;
   }
 
-  localSearchResults = results;
-
-  if (playFirst) {
-    playLocalSearchResult(results[0]);
-    return;
-  }
-
-  list.innerHTML = results
-    .map(
-      (track, i) => `
-      <div class="search-item" onclick="playLocalSearchResult(localSearchResults[${i}])">
-        <img src="${getSongDisplayImage(track, i)}" alt="${track.title}" style="border-radius:4px; width:42px; height:42px; object-fit:cover;" />
-        <div class="search-item-info">
-          <div class="search-item-title">${highlight(track.title, query)}</div>
-          <div class="search-item-artist">Local &middot; ${track.artist}</div>
-        </div>
-      </div>
-    `,
-    )
-    .join("");
-}
-
-function playLocalSearchResult(track) {
-  if (!track) return;
-  addToHistory(track.title);
-  const localIndex = songs.findIndex((song) => song.file === track.file);
-  playSound(localIndex !== -1 ? localIndex : 0);
-  searchInput.value = "";
-  searchClear.style.display = "none";
-  showSearchHistoryDropdown();
-}
-function highlight(text, q) {
-  const regex = new RegExp(`(${q})`, "gi");
-  return text.replace(regex, "<mark>$1</mark>");
+  searchClear.style.display = "block";
+  searchYouTube(q, false, { force: true });
 }
 
 function clearSearch() {
@@ -1122,8 +2090,7 @@ function clearSearch() {
   searchClear.style.display = "none";
   clearTimeout(searchDebounceTimer);
   document.getElementById("searchResults").style.display = "none";
-  document.getElementById("searchHistory").style.display = "block";
-  renderHistory();
+  showSearchHomeDropdown(true);
   searchInput.focus();
 }
 
@@ -1156,11 +2123,88 @@ function renderHistory() {
     .join("");
 }
 
+function getRotatingTrendingSuggestions() {
+  const pool = [...dynamicTrendingSearchSuggestions, ...TRENDING_SEARCH_SUGGESTIONS];
+  const daySeed = Math.floor(Date.now() / (1000 * 60 * 60 * 6));
+  const offset = (daySeed + searchSuggestionOpenCount * 5) % pool.length;
+  const rotated = pool.slice(offset).concat(pool.slice(0, offset));
+  const recent = searchHistory.map((item) => String(item || "").toLowerCase());
+  return rotated.filter((item, index, list) => list.indexOf(item) === index).filter((item) => !recent.includes(item.toLowerCase())).slice(0, 6);
+}
+
+function hydrateTrendingSearchSuggestions() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(TRENDING_SEARCH_CACHE_KEY) || "null");
+    if (cached && Date.now() - cached.time < TRENDING_SEARCH_CACHE_AGE && Array.isArray(cached.items)) {
+      dynamicTrendingSearchSuggestions = cached.items;
+      return;
+    }
+  } catch (e) {}
+
+  if (typeof fetchVietnameseYouTubeChart !== "function") return;
+  fetchVietnameseYouTubeChart(12)
+    .then((items) => {
+      const suggestions = (items || [])
+        .map((item) => cleanupSongTitle(item.song || cleanYouTubeTitle(item.title || "")))
+        .filter(Boolean)
+        .slice(0, 12);
+      if (!suggestions.length) return;
+      dynamicTrendingSearchSuggestions = suggestions;
+      localStorage.setItem(TRENDING_SEARCH_CACHE_KEY, JSON.stringify({ items: suggestions, time: Date.now() }));
+      if (!searchInput.value.trim() && searchDropdown.style.display === "block") renderSuggestions();
+    })
+    .catch(() => {});
+}
+
+function renderSuggestions() {
+  const list = document.getElementById("suggestionList");
+  if (!list) return;
+  list.innerHTML = getRotatingTrendingSuggestions()
+    .map(
+      (item) => `
+      <button class="search-suggestion-item" type="button" onclick="searchSuggestionItem('${escapeInlineString(item)}')">
+        <span>↗</span>
+        <strong>${escapeHtml(item)}</strong>
+      </button>
+    `,
+    )
+    .join("");
+}
+
+function showSearchHomeDropdown(rotateSuggestions) {
+  if (rotateSuggestions) searchSuggestionOpenCount += 1;
+  hydrateTrendingSearchSuggestions();
+  renderSuggestions();
+  renderHistory();
+  document.getElementById("searchSuggestions").style.display = "block";
+  document.getElementById("searchHistory").style.display = "block";
+  document.getElementById("searchResults").style.display = "none";
+  searchDropdown.style.display = "block";
+  searchWrapper.classList.add("active");
+}
+
+function searchSuggestionItem(query) {
+  searchInput.value = query;
+  searchClear.style.display = "block";
+  searchYouTube(query);
+}
+
 function searchHistoryItem(index) {
   const title = searchHistory[index];
   if (!title) return;
   searchInput.value = title;
+  searchClear.style.display = "block";
   searchYouTube(title);
+}
+
+function clearSearchHistory(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  searchHistory = [];
+  localStorage.setItem("searchHistory", JSON.stringify(searchHistory));
+  renderHistory();
 }
 
 function removeHistoryAt(index, event) {
@@ -1179,16 +2223,13 @@ function removeHistoryAt(index, event) {
 }
 
 function showSearchHistoryDropdown() {
-  renderHistory();
-  document.getElementById("searchHistory").style.display = "block";
-  document.getElementById("searchResults").style.display = "none";
-  searchDropdown.style.display = "block";
-  searchWrapper.classList.add("active");
+  showSearchHomeDropdown(true);
 }
 
 function getYouTubeSearchCacheKey(query) {
   return (
-    "yt_search_unfiltered_" +
+    SEARCH_CACHE_VERSION +
+    "_" +
     String(query || "")
       .toLowerCase()
       .trim()
@@ -1197,7 +2238,12 @@ function getYouTubeSearchCacheKey(query) {
 
 function readYouTubeSearchCache(query) {
   const cacheKey = getYouTubeSearchCacheKey(query);
-  const cached = localStorage.getItem(cacheKey);
+  let cached = null;
+  try {
+    cached = localStorage.getItem(cacheKey);
+  } catch (error) {
+    return null;
+  }
   if (!cached) return null;
 
   try {
@@ -1209,50 +2255,68 @@ function readYouTubeSearchCache(query) {
   return null;
 }
 
+function clearSearchResultCaches() {
+  try {
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith("db_search_music_") || key.startsWith("db_top100_music_"))
+      .forEach((key) => localStorage.removeItem(key));
+  } catch (error) {}
+}
+
+function writeYouTubeSearchCache(cacheKey, data) {
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify(data));
+  } catch (error) {
+    clearSearchResultCaches();
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(data));
+    } catch (retryError) {
+      console.warn("Search cache skipped:", retryError);
+    }
+  }
+}
+
 function renderCachedYouTubeSearch(query) {
   const cached = readYouTubeSearchCache(query);
   if (!cached) return false;
 
+  document.getElementById("searchSuggestions").style.display = "none";
   document.getElementById("searchHistory").style.display = "none";
   document.getElementById("searchResults").style.display = "block";
   document.getElementById("resultList").innerHTML = cached.html;
+  youtubePlaybackQueue = (cached.items || []).map((item) => ({
+    videoId: item.videoId,
+    title: item.title,
+    artist: item.artist || "Nguồn nhạc",
+    image: item.image || `https://i.ytimg.com/vi/${item.videoId}/mqdefault.jpg`,
+  }));
   return true;
 }
 
-// ============================
-// YOUTUBE DATA API
-// - Search cache 30 ngày: cùng từ khóa không gọi lại API
-// - Debounce khi gõ: chỉ gọi API sau khi user dừng nhập
-// - Chặn query quá ngắn để tránh tốn quota vô ích
-// → 10,000 quota/ngày là quá đủ
-// ============================
+function renderSearchNoResults(query) {
+  const safeQuery = escapeHtml(query || "nội dung này");
+  return `
+    <div class="search-no-results-popup">
+      <div class="search-no-results-icon">⌕</div>
+      <strong>Không thể tìm thấy kết quả</strong>
+      <span>Không có video âm nhạc có thể phát cho "${safeQuery}".</span>
+    </div>
+  `;
+}
 
-// ============================
-// YOUTUBE API KEY ROTATION
-// 5 keys x 10,000 quota = 50,000 quota/ngày
-// Tự động chuyển key khi hết quota (lỗi 429)
-// ============================
-const YT_API_KEYS = [
-  "AIzaSyDruUxHeZt6G2Xnwje2E7_eeoQ_POfXdyQ", // Listen Music
-  "AIzaSyCXqdLZe_Ar53g1Xa1jk7JC-A5mjPwP9Oc", // My First Project
-  "AIzaSyD0EQ8BeBEa-PEbA8c45lMDTtY7Pf34fm4", // Listen Music 2
-  "AIzaSyC2-0pM6OPR7z5GBjDvqz9QmO3aHhL4cGk", // Listen Music 3
-  "AIzaSyAYJSC50Lav_8ItIc6LqQjIjCOXe6bZdzc", // Listen Music 4
-];
-let _ytKeyIndex = 0;
-function getYTApiKey() {
-  return YT_API_KEYS[_ytKeyIndex];
+const YOUTUBE_API_PROXY_BASE = "/api/youtube/v3";
+
+function fetchYouTubeApi(resource, params) {
+  const query = new URLSearchParams();
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    query.set(key, value);
+  });
+  return fetch(`${YOUTUBE_API_PROXY_BASE}/${resource}?${query.toString()}`).then((response) => response.json());
 }
-function rotateYTApiKey() {
-  _ytKeyIndex = (_ytKeyIndex + 1) % YT_API_KEYS.length;
-  console.warn(`[YouTube] Chuyển sang API key #${_ytKeyIndex + 1}`);
-}
-// Giữ tương thích với code cũ dùng YT_API_KEY
-Object.defineProperty(window, "YT_API_KEY", { get: () => getYTApiKey() });
-const ARTIST_RESULTS_COUNT = 50;
+
 const AUDIUS_API_BASE = "https://discoveryprovider.audius.co/v1";
 const AUDIUS_APP_NAME = "ListenMusic";
-const INVIDIOUS_ENDPOINTS = [];
 
 let ytPlayer = null;
 let ytReady = false;
@@ -1261,24 +2325,8 @@ function onYouTubeIframeAPIReady() {
   ytReady = true;
 }
 
-function fetchYouTubeVideos(query, totalResults) {
-  return fetchFromAudiusPrimary(query, totalResults)
-    .catch((error) => {
-      console.warn("Audius API failed:", error);
-      return fetchYouTubeVideosWithFallback(query, totalResults);
-    })
-    .catch((error) => {
-      console.warn("YouTube/Invidious API failed:", error);
-      return fetchYouTubeVideosFallback(query, totalResults);
-    });
-}
-
 function fetchYouTubeVideosWithFallback(query, totalResults) {
-  return fetchYouTubeVideosFromDataApi(query, totalResults).catch((error) => {
-    if (!isYouTubeQuotaError(error)) throw error;
-    console.warn("YouTube quota exceeded. Switching to Invidious search:", error);
-    return fetchYouTubeVideosFallback(query, totalResults);
-  });
+  return fetchMusicDatabaseVideos(query, totalResults);
 }
 
 function isYouTubeQuotaError(error) {
@@ -1286,29 +2334,18 @@ function isYouTubeQuotaError(error) {
   return message.includes("quota") || message.includes("daily limit") || message.includes("search queries");
 }
 
-function fetchFromAudiusPrimary(query, totalResults) {
-  const url = `${AUDIUS_API_BASE}/tracks/search?query=${encodeURIComponent(query)}&limit=${totalResults}&app_name=${encodeURIComponent(AUDIUS_APP_NAME)}`;
-  return fetch(url)
-    .then((r) => r.json())
-    .then((data) => {
-      const tracks = (data.data || []).slice(0, totalResults);
-      if (tracks.length === 0) throw new Error("Audius returned 0 tracks");
-
-      return tracks.map((track) => {
-        const artwork = track.artwork || {};
-        const thumb = artwork["480x480"] || artwork["1000x1000"] || artwork["150x150"] || "";
-        return {
-          id: { videoId: track.id },
-          snippet: {
-            title: track.title || "(Không có tiêu đề)",
-            channelTitle: (track.user && track.user.name) || "Audius Artist",
-            thumbnails: { medium: { url: thumb } },
-          },
-          isAudius: true,
-          audiusTrack: track,
-        };
-      });
-    });
+function isRecoverableYouTubeApiError(error) {
+  const message = String((error && error.message) || error || "").toLowerCase();
+  return (
+    isYouTubeQuotaError(error) ||
+    message.includes("api key") ||
+    message.includes("key not valid") ||
+    message.includes("forbidden") ||
+    message.includes("access not configured") ||
+    message.includes("referer") ||
+    message.includes("429") ||
+    message.includes("403")
+  );
 }
 
 function fetchYouTubeVideosFromDataApi(query, totalResults) {
@@ -1325,155 +2362,129 @@ function fetchYouTubeVideosFromDataApi(query, totalResults) {
     });
   };
 
-  const tryFetchWithKey = (keysLeft) => {
-    if (keysLeft <= 0) return Promise.reject(new Error("Quota exceeded: tất cả API key đã hết quota!"));
-    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=relevance&safeSearch=none&q=${encodeURIComponent(query)}&key=${getYTApiKey()}`;
+  return fetchYouTubeApi("search", {
+    part: "snippet",
+    type: "video",
+    order: "relevance",
+    q: query,
+    maxResults: pageSize,
+  }).then((data) => {
+    if (data.error) throw new Error(data.error.message || "YouTube API error");
+    appendUniqueVideos(data.items);
 
-    return fetch(`${apiUrl}&maxResults=${pageSize}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) {
-          const msg = data.error.message || "YouTube API error";
-          if (isYouTubeQuotaError(new Error(msg))) {
-            rotateYTApiKey();
-            items = [];
-            seenVideoIds.clear();
-            return tryFetchWithKey(keysLeft - 1);
-          }
-          throw new Error(msg);
-        }
-
-        appendUniqueVideos(data.items);
-
-        const fetchNextPage = (nextPageToken) => {
-          if (items.length >= totalResults || !nextPageToken) {
-            return Promise.resolve(items.slice(0, totalResults));
-          }
-          const remaining = totalResults - items.length;
-          const nextPageSize = Math.min(YOUTUBE_PAGE_SIZE, remaining);
-          const nextApiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=relevance&safeSearch=none&q=${encodeURIComponent(query)}&key=${getYTApiKey()}`;
-          return fetch(`${nextApiUrl}&maxResults=${nextPageSize}&pageToken=${encodeURIComponent(nextPageToken)}`)
-            .then((r) => r.json())
-            .then((nextData) => {
-              if (nextData.error) throw new Error(nextData.error.message || "YouTube API error");
-              appendUniqueVideos(nextData.items);
-              return fetchNextPage(nextData.nextPageToken);
-            });
-        };
-
-        return fetchNextPage(data.nextPageToken);
+    const fetchNextPage = (nextPageToken) => {
+      if (items.length >= totalResults || !nextPageToken) return Promise.resolve(items.slice(0, totalResults));
+      const remaining = totalResults - items.length;
+      const nextPageSize = Math.min(YOUTUBE_PAGE_SIZE, remaining);
+      return fetchYouTubeApi("search", {
+        part: "snippet",
+        type: "video",
+        order: "relevance",
+        q: query,
+        maxResults: nextPageSize,
+        pageToken: nextPageToken,
+      }).then((nextData) => {
+        if (nextData.error) throw new Error(nextData.error.message || "YouTube API error");
+        appendUniqueVideos(nextData.items);
+        return fetchNextPage(nextData.nextPageToken);
       });
-  };
+    };
 
-  return tryFetchWithKey(YT_API_KEYS.length);
+    return fetchNextPage(data.nextPageToken);
+  });
 }
 
-function fetchInvidiousVideoDetails(videoId) {
-  const tryEndpoint = (index) => {
-    if (index >= INVIDIOUS_ENDPOINTS.length) {
-      return Promise.reject(new Error("Không lấy được thông tin video từ Invidious."));
-    }
-
-    return fetch(`${INVIDIOUS_ENDPOINTS[index]}/api/v1/videos/${encodeURIComponent(videoId)}`)
-      .then((r) => {
-        if (!r.ok) throw new Error("Invidious video endpoint failed");
-        return r.json();
-      })
-      .then((data) => ({
-        id: videoId,
-        snippet: {
-          title: data.title || "",
-          channelTitle: data.author || "",
-          thumbnails: { medium: { url: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` } },
-        },
-        statistics: { viewCount: Number(data.viewCount || 0) },
-        invidious: { viewCount: Number(data.viewCount || 0) },
-      }))
-      .catch((error) => {
-        console.warn(`Invidious video endpoint ${INVIDIOUS_ENDPOINTS[index]} failed:`, error);
-        return tryEndpoint(index + 1);
-      });
-  };
-
-  return tryEndpoint(0);
+function getVideoIdFromItem(item) {
+  if (!item) return "";
+  if (typeof item.id === "string") return item.id;
+  return (item.id && item.id.videoId) || item.videoId || "";
 }
 
-function fetchYouTubeVideosFallback(query, totalResults) {
-  const endpoints = INVIDIOUS_ENDPOINTS.map((base) => `${base}/api/v1/search?q=`);
-
-  const parseFallbackResponse = (data) => {
-    let rawItems = [];
-    if (Array.isArray(data)) rawItems = data;
-    else if (data.videos) rawItems = data.videos;
-    else if (data.results) rawItems = data.results;
-    else if (data.contents) rawItems = data.contents;
-    else if (data.data && Array.isArray(data.data)) rawItems = data.data;
-
-    return rawItems
-      .map((item) => {
-        const videoId = item.videoId || (item.id && item.id.videoId) || item.id || "";
-        const title = item.title || item.name || item.videoTitle || "(Không có tiêu đề)";
-        const channelTitle = item.author || item.uploader || item.channel || item.channelTitle || "YouTube";
-        const thumb = item.thumbnail || item.thumbnailUrl || (item.thumbnails && item.thumbnails.medium && item.thumbnails.medium.url) || (videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : "");
-        return {
-          id: { videoId },
-          snippet: {
-            title,
-            channelTitle,
-            thumbnails: { medium: { url: thumb } },
-          },
-          invidious: {
-            viewCount: Number(item.viewCount || item.view_count || item.views || 0),
-            published: item.publishedText || item.published || "",
-          },
-        };
-      })
-      .filter((item) => item.id.videoId)
-      .slice(0, totalResults);
-  };
-
-  const tryEndpoint = (index) => {
-    if (index >= endpoints.length) {
-      return Promise.reject(new Error("Không tìm được endpoint fallback YouTube phù hợp."));
-    }
-    const url = `${endpoints[index]}${encodeURIComponent(query)}`;
-    return fetch(url)
-      .then((r) => r.json())
-      .then((data) => {
-        const items = parseFallbackResponse(data);
-        if (!items.length) {
-          throw new Error("Fallback YouTube endpoint trả về 0 kết quả");
-        }
-        return items;
-      })
-      .catch((error) => {
-        console.warn(`Fallback endpoint ${endpoints[index]} failed:`, error);
-        return tryEndpoint(index + 1);
-      });
-  };
-
-  return tryEndpoint(0);
+function getUnplayableYouTubeIds() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(YOUTUBE_UNPLAYABLE_KEY) || "[]"));
+  } catch (e) {
+    localStorage.removeItem(YOUTUBE_UNPLAYABLE_KEY);
+    return new Set();
+  }
 }
 
-function fetchAudiusTracks(query, totalResults) {
-  const url = `${AUDIUS_API_BASE}/tracks/search?query=${encodeURIComponent(query)}&limit=${totalResults}&app_name=${encodeURIComponent(AUDIUS_APP_NAME)}`;
+function markUnplayableYouTubeVideo(videoId) {
+  if (!videoId) return;
+  const ids = getUnplayableYouTubeIds();
+  ids.add(videoId);
+  localStorage.setItem(YOUTUBE_UNPLAYABLE_KEY, JSON.stringify(Array.from(ids).slice(-300)));
+}
 
-  return fetch(url)
-    .then((r) => r.json())
-    .then((data) => {
-      if (data.error) throw new Error(data.error.message || "Audius API error");
-      return (data.data || []).slice(0, totalResults).map(normalizeAudiusTrack);
+function removeYouTubeVideoFromQueue(videoId) {
+  if (!videoId) return;
+  const oldIndex = currentYouTubeIndex;
+  youtubePlaybackQueue = youtubePlaybackQueue.filter((item) => item.videoId !== videoId);
+  if (oldIndex >= youtubePlaybackQueue.length) currentYouTubeIndex = youtubePlaybackQueue.length - 1;
+}
+
+function getItemTextForFiltering(item) {
+  const snippet = (item && item.snippet) || {};
+  return `${snippet.title || item.title || ""} ${snippet.channelTitle || item.channelTitle || ""} ${snippet.description || ""}`;
+}
+
+function isProbablyNonMusicVideo(item) {
+  return false;
+}
+
+function hasPlayableMusicDetails(item) {
+  return true;
+}
+
+function fetchYouTubePlaybackDetails(videoIds) {
+  const ids = Array.from(new Set(videoIds.filter(Boolean)));
+  if (!ids.length) return Promise.resolve({});
+
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += 50) chunks.push(ids.slice(i, i + 50));
+
+  return Promise.all(
+    chunks.map((chunk) =>
+      fetchYouTubeApi("videos", {
+        part: "snippet,contentDetails,status",
+        id: chunk.join(","),
+      }).then((data) => {
+        if (data.error) throw new Error(data.error.message || "YouTube API error");
+        return data.items || [];
+      }),
+    ),
+  ).then((groups) => {
+    const map = {};
+    groups.flat().forEach((item) => {
+      if (item && item.id) map[item.id] = item;
     });
+    return map;
+  });
 }
 
-function normalizeAudiusTrack(track) {
+function mergeYouTubeDetailIntoSearchItem(item, detail) {
+  if (!detail) return item;
+  const videoId = getVideoIdFromItem(item) || detail.id;
   return {
-    id: track.id,
-    title: track.title,
-    duration: track.duration,
-    artwork: track.artwork,
-    user: track.user ? { name: track.user.name } : null,
+    ...item,
+    id: { videoId },
+    snippet: {
+      ...(detail.snippet || {}),
+      ...((item && item.snippet) || {}),
+      thumbnails: (((item && item.snippet) || {}).thumbnails || (detail.snippet && detail.snippet.thumbnails) || {}),
+    },
+    contentDetails: detail.contentDetails || item.contentDetails,
+    status: detail.status || item.status,
   };
+}
+
+function filterPlayableMusicVideos(items, options = {}) {
+  const limit = options.limit || items.length;
+  return Promise.resolve(
+    uniqueVideosById(items)
+      .filter((item) => getVideoIdFromItem(item))
+      .slice(0, limit),
+  );
 }
 
 function getAudiusArtwork(track) {
@@ -1487,27 +2498,6 @@ function getAudiusArtist(track) {
 
 function getAudiusStreamUrl(trackId) {
   return `${AUDIUS_API_BASE}/tracks/${encodeURIComponent(trackId)}/stream?app_name=${encodeURIComponent(AUDIUS_APP_NAME)}`;
-}
-
-function getAudiusTopicQuery(topicName, fallbackQuery) {
-  const topicQueries = {
-    Bolero: "acoustic latin love",
-    Remix: "remix electronic dance",
-    "V-Rap": "hip hop rap",
-    "Pop Ballad": "pop ballad",
-    Pop: "pop music",
-    TikTok: "viral trending",
-    Sad: "sad emotional",
-    "K-Pop": "kpop pop",
-    Chill: "chill lofi",
-    Summer: "summer dance",
-    "Nhạc Trẻ Ballad": "pop ballad love",
-    "V-Pop Gây Bão": "pop trending",
-    "Remix Thịnh Hành": "remix trending electronic",
-    "Rap Việt Hot": "hip hop rap trending",
-  };
-
-  return topicQueries[topicName] || fallbackQuery;
 }
 
 function getExploreTopicQuery(topicName, fallbackQuery) {
@@ -1537,87 +2527,54 @@ function getExploreTopicQuery(topicName, fallbackQuery) {
 
 function openTopic(topicName, query) {
   showPage("youtubePage");
-  document.getElementById("youtubePageTitle").textContent = "🎧 " + topicName + " · YouTube";
+  document.getElementById("youtubePageTitle").textContent = "🎧 " + topicName;
+  setTop100RefreshVisible(false);
 
   const youtubeQuery = getExploreTopicQuery(topicName, query);
-  const cacheKey = "yt_explore_topic_v2_" + youtubeQuery.toLowerCase().trim();
+  const cacheKey = "db_explore_topic_music_v2_" + youtubeQuery.toLowerCase().trim();
   const cached = localStorage.getItem(cacheKey);
   if (cached) {
     try {
-      const { html, time } = JSON.parse(cached);
+      const { html, time, queue } = JSON.parse(cached);
       if (Date.now() - time < CACHE_7_DAYS) {
-        document.getElementById("youtubeList").innerHTML = html;
+        youtubePlaybackQueue = queue || [];
+        const youtubeList = document.getElementById("youtubeList");
+        youtubeList.innerHTML = html;
+        hydrateYouTubeListItems(youtubeList);
         return;
       }
     } catch (e) {}
     localStorage.removeItem(cacheKey);
   }
 
-  document.getElementById("youtubeList").innerHTML = "";
+  document.getElementById("youtubeList").innerHTML = '<div class="yt-loading">Đang tải nhạc khám phá...</div>';
 
   fetchYouTubeVideosWithFallback(youtubeQuery, EXPLORE_TOPIC_RESULTS_COUNT)
     .then((items) => {
       if (!items || items.length === 0) {
-        document.getElementById("youtubeList").innerHTML = '<div class="yt-loading">Không tìm thấy bài hát phù hợp trên YouTube.</div>';
+        document.getElementById("youtubeList").innerHTML = '<div class="yt-loading">Không tìm thấy bài hát phù hợp.</div>';
         return;
       }
       const html = renderYouTubeList(items);
-      localStorage.setItem(cacheKey, JSON.stringify({ html, time: Date.now() }));
+      localStorage.setItem(cacheKey, JSON.stringify({ html, queue: youtubePlaybackQueue, time: Date.now() }));
     })
     .catch((error) => {
       console.error("Explore topic fetch error:", error);
-      document.getElementById("youtubeList").innerHTML = `
-        <div class="t100-error-box">
-          <div class="t100-error-icon">❌</div>
-          <div class="t100-error-title">Không tải được danh sách từ YouTube</div>
-          <div class="t100-error-body">
-            ${error && error.message ? error.message : "Vui lòng kiểm tra kết nối mạng hoặc YouTube API key."}
-          </div>
-          <button class="t100-retry-btn" onclick="openTopic('${topicName.replace(/'/g, "\\'")}', '${query.replace(/'/g, "\\'")}')">Thử lại</button>
-        </div>
-      `;
+      document.getElementById("youtubeList").innerHTML = "";
     });
-}
-
-function renderAudiusList(tracks) {
-  const list = document.getElementById("youtubeList");
-  audiusTracks = tracks;
-  currentAudiusIndex = -1;
-
-  const html = tracks
-    .map((track, i) => {
-      const title = track.title || "Untitled";
-      const artist = getAudiusArtist(track);
-      const thumb = getAudiusArtwork(track);
-      const duration = track.duration ? formatTime(track.duration) : "";
-      return `
-        <div class="yt-song-item audius-song-item" onclick="playAudiusTrack(${i})">
-          <div class="yt-song-num">${i + 1}</div>
-          <div class="yt-song-thumb audius-song-thumb">
-            <img src="${thumb}" alt="${title}" />
-            <span class="yt-play-icon">▶</span>
-          </div>
-          <div class="yt-song-info">
-            <div class="yt-song-title">${title}</div>
-            <div class="yt-song-channel">🎧 Audius · ${artist}${duration ? " · " + duration : ""}</div>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-
-  list.innerHTML = html;
-  return html;
 }
 
 function playAudiusTrack(index) {
   const track = audiusTracks[index];
   if (!track || !track.id) return;
 
-  if (ytPlayer) {
-    ytPlayer.stopVideo();
+  if (isCurrentPlaybackTrack(track)) {
+    togglePlay();
+    return;
   }
-  document.getElementById("ytPlayerModal").style.display = "none";
+
+  userPausedPlayback = false;
+  stopYouTubePlayback();
 
   if (currentAudio) {
     currentAudio.pause();
@@ -1628,7 +2585,8 @@ function playAudiusTrack(index) {
 
   currentAudioSource = "audius";
   currentAudiusIndex = index;
-  recordListeningHistory({
+  currentYouTubeIndex = -1;
+  const playingTrack = {
     type: "audius",
     title: track.title || "Untitled",
     artist: getAudiusArtist(track),
@@ -1636,7 +2594,9 @@ function playAudiusTrack(index) {
     artwork: track.artwork,
     trackId: track.id,
     duration: track.duration,
-  });
+  };
+  recordListeningHistory(playingTrack);
+  setCurrentPlayingTrack(playingTrack);
   currentAudio = new Audio(getAudiusStreamUrl(track.id));
   currentAudio.ontimeupdate = updateProgress;
   currentAudio.onended = function () {
@@ -1648,15 +2608,9 @@ function playAudiusTrack(index) {
   };
 
   currentAudio.play();
-  document.querySelector(".player-bar").classList.add("active");
+  showMiniPlayer();
   setPlayPauseIcon(true);
-  updateAudiusPlayingState();
-}
-
-function updateAudiusPlayingState() {
-  document.querySelectorAll(".audius-song-item").forEach((item, i) => {
-    item.classList.toggle("is-playing", i === currentAudiusIndex);
-  });
+  updatePlaybackItemState();
 }
 
 function renderYouTubeList(items) {
@@ -1667,38 +2621,61 @@ function renderYouTubeList(items) {
     return "";
   }
 
+  youtubePlaybackQueue = items
+    .filter((item) => !item.isAudius && item.id && item.id.videoId)
+    .map((item) => {
+      const thumbs = item.snippet.thumbnails || {};
+      const thumb = (thumbs.medium || thumbs.high || thumbs.default || {}).url || `https://i.ytimg.com/vi/${item.id.videoId}/mqdefault.jpg`;
+      return {
+        videoId: item.id.videoId,
+        title: item.snippet.title,
+        artist: item.snippet.channelTitle || "Nguồn nhạc",
+        image: thumb,
+      };
+    });
+
   const html = items
     .map((item, i) => {
-      const title = item.snippet.title;
-      const channel = item.snippet.channelTitle;
-      const thumb = item.snippet.thumbnails.medium.url || "";
+      const title = item.snippet.title || "Bài hát";
+      const channel = item.snippet.channelTitle || "Nguồn nhạc";
+      const thumbs = item.snippet.thumbnails || {};
+      const thumb = ((thumbs.medium || thumbs.high || thumbs.default || {}).url || "").trim();
+      const displayTitle = escapeHtml(title);
+      const displayChannel = escapeHtml(channel);
+      const safeThumbAttr = escapeHtml(thumb);
 
       if (item.isAudius) {
+        const audiusIndex = items.slice(0, i + 1).filter((entry) => entry.isAudius).length - 1;
+        const audiusTrackId = item.audiusTrack && item.audiusTrack.id;
         return `
-          <div class="yt-song-item audius-song-item" onclick="playAudiusTrack(${i})">
+          <div class="yt-song-item audius-song-item" data-playback-id="${getPlaybackId({ trackId: audiusTrackId })}" onclick="playAudiusTrack(${audiusIndex})">
             <div class="yt-song-num">${i + 1}</div>
             <div class="yt-song-thumb audius-song-thumb">
-              <img src="${thumb}" alt="${title}" />
-              <span class="yt-play-icon">▶</span>
+              <img src="${safeThumbAttr}" alt="${displayTitle}" />
+              <span class="yt-play-icon" onclick="handlePlaybackButtonClick(event, () => playAudiusTrack(${audiusIndex}))">▶</span>
             </div>
             <div class="yt-song-info">
-              <div class="yt-song-title">${title}</div>
-              <div class="yt-song-channel">🎧 Audius · ${channel}</div>
+              <div class="yt-song-title">${displayTitle}</div>
+              <div class="yt-song-channel">🎧 Audius · ${displayChannel}</div>
             </div>
           </div>
         `;
       } else {
         const vid = item.id.videoId;
+        const safeVid = escapeInlineString(vid);
+        const safeTitle = escapeInlineString(title);
+        const safeChannel = escapeInlineString(channel);
+        const safeThumb = escapeInlineString(thumb);
         return `
-          <div class="yt-song-item" onclick="playYouTube('${vid}', \`${title.replace(/`/g, "'")}\`)">
+          <div class="yt-song-item" data-playback-id="${getPlaybackId({ videoId: vid })}" onclick="playYouTubeById('${safeVid}', '${safeTitle}', '${safeChannel}', '${safeThumb}')">
             <div class="yt-song-num">${i + 1}</div>
             <div class="yt-song-thumb">
-              <img src="${thumb}" alt="${title}" />
-              <span class="yt-play-icon">▶</span>
+              <img src="${safeThumbAttr}" alt="${displayTitle}" />
+              <span class="yt-play-icon" onclick="handlePlaybackButtonClick(event, () => playYouTubeById('${safeVid}', '${safeTitle}', '${safeChannel}', '${safeThumb}'))">▶</span>
             </div>
             <div class="yt-song-info">
-              <div class="yt-song-title">${title}</div>
-              <div class="yt-song-channel">${channel}</div>
+              <div class="yt-song-title">${displayTitle}</div>
+              <div class="yt-song-channel">${displayChannel}</div>
             </div>
           </div>
         `;
@@ -1707,6 +2684,7 @@ function renderYouTubeList(items) {
     .join("");
 
   list.innerHTML = html;
+  hydrateYouTubeListItems(list);
 
   if (items.some((item) => item.isAudius)) {
     audiusTracks = items.filter((item) => item.isAudius).map((item) => item.audiusTrack);
@@ -1723,20 +2701,21 @@ function renderYouTubeList(items) {
 // ARTIST PAGE
 // ============================
 
-let selectedArtistMonth = 5;
 let artistPageLoadedKey = "";
 let monthlyArtistItems = [];
 let artistYoutubeSearchCompleted = false;
 let artistAdIndex = 0;
 let artistAdTimer = null;
 let currentArtistSongsName = "";
-const ARTIST_PAGE_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
+let artistSearchQuery = "";
+let artistGenreFilter = "Tất cả";
+let followedArtistNames = readFollowedArtists();
 const GENERIC_MUSIC_CHANNEL_PATTERNS = /(top|bxh|bảng xếp hạng|nonstop|vinahouse|remix|playlist|tiktok|nhạc trẻ|nhac tre|music|media|records|entertainment|network|channel|karaoke|lyrics|cover|ost|mix|best of|hay nhất|hot nhất|2025|2026)/i;
 const NON_ARTIST_TITLE_PATTERNS = /(nonstop|top\s*\d*|bxh|bảng xếp hạng|playlist|liên khúc|tuyển tập|nhạc remix|remix hay nhất|bay phòng|vinahouse|edm|bass cực mạnh|chuẩn trend|hot tiktok|nhạc trẻ remix|best of|full album)/i;
 const ARTIST_AD_REFRESH_DELAY = 5000;
 const ARTIST_ADS = [
   {
-    kicker: "LISTEN MUSIC",
+    kicker: "Listen Music",
     title: "Âm nhạc chất lượng cao mỗi ngày",
     body: "Khám phá playlist cá nhân, âm thanh rõ hơn và ít gián đoạn hơn.",
     buttonText: "Xem Top 100",
@@ -1840,10 +2819,6 @@ const MUSIC_SOURCE_ARTISTS = [
   { artist: "Lệ Quyên", source: "Danh sách ca sĩ" },
 ];
 
-function getArtistMonth() {
-  return 5;
-}
-
 function getArtistPeriod(month) {
   const year = new Date().getFullYear();
   return {
@@ -1858,11 +2833,6 @@ function setArtistActiveMonth(month) {
   document.querySelectorAll(".artist-month-tab").forEach((btn) => {
     btn.classList.toggle("active", btn.textContent.trim() === `Tháng ${month}`);
   });
-}
-
-function getArtistCacheKey(month, type) {
-  const period = getArtistPeriod(month);
-  return `artist_page_${type}_${period.key}`;
 }
 
 function readTimedCache(key, maxAge) {
@@ -1880,12 +2850,6 @@ function readTimedCache(key, maxAge) {
 
 function writeTimedCache(key, data) {
   localStorage.setItem(key, JSON.stringify({ data, time: Date.now() }));
-}
-
-function openArtistMonth(month) {
-  selectedArtistMonth = 5;
-  artistPageLoadedKey = "";
-  loadArtistPage(true);
 }
 
 function loadArtistPage(forceReload) {
@@ -1967,118 +2931,253 @@ function renderArtistAd(index) {
 }
 
 function loadMayYouTubeArtists(forceReload) {
-  monthlyArtistItems = getMusicSourceArtistSeeds();
-  artistYoutubeSearchCompleted = true;
-  renderArtistRanking(monthlyArtistItems);
-  loadArtistPhotos();
-}
-
-function getRealSingerArtistItems() {
-  return mergeArtistItems(getMusicSourceArtistSeeds(), getLocalArtistItems());
+  getDatabaseArtists(forceReload)
+    .then((artists) => {
+      monthlyArtistItems = artists || [];
+      artistYoutubeSearchCompleted = true;
+      renderArtistRanking(monthlyArtistItems);
+    })
+    .catch((error) => {
+      console.error("Artist database load error:", error);
+      monthlyArtistItems = [];
+      artistYoutubeSearchCompleted = true;
+      const list = document.getElementById("artistRankingList");
+      if (list) {
+        list.innerHTML = `
+          <div class="artist-loading">
+            Danh sách nghệ sĩ đang tạm thời chưa hiển thị. Vui lòng thử lại sau.
+          </div>
+        `;
+      }
+    });
 }
 
 function getMusicSourceArtistSeeds() {
   return MUSIC_SOURCE_ARTISTS.map((item, index) => ({ ...item, sourceRank: index + 1 }));
 }
 
+function findMusicSourceArtistSeed(artistName) {
+  const target = normalizeSearchText(artistName);
+  return MUSIC_SOURCE_ARTISTS.find((item) => normalizeSearchText(item.artist) === target);
+}
+
 function hasResolvedMaySong(item) {
   return !!(item && item.artist && item.song && item.song !== "Đang tìm bài hát tháng 5" && (item.videoId || item.viewCount || item.localFile));
 }
 
-function countResolvedMaySongs(items) {
-  return (items || []).filter(hasResolvedMaySong).length;
-}
-
-function mergeArtistResultsWithSeeds(results, seeds) {
-  const resultByArtist = new Map();
-  (results || []).filter(hasResolvedMaySong).forEach((item) => {
-    const key = normalizeSongIdentity(item.artist, item.song);
-    const current = resultByArtist.get(key);
-    if (!current || Number(item.viewCount || 0) > Number(current.viewCount || 0)) {
-      resultByArtist.set(key, item);
-    }
-  });
-
-  const merged = (seeds || []).slice(0, 50).map((seed, index) => {
-    const key = normalizeSongIdentity(seed.artist, seed.song);
-    const result = resultByArtist.get(key);
-    return result ? { ...seed, ...result, sourceRank: index + 1 } : { ...seed, sourceRank: index + 1 };
-  });
-
-  return merged.sort((a, b) => Number(a.sourceRank || 999) - Number(b.sourceRank || 999));
-}
-
-function getLocalArtistItems() {
-  return songs
-    .map((song) => {
-      const artist = getPrimaryLocalArtist(song.artist);
-      if (!artist || shouldExcludeArtistName(artist)) return null;
-      return {
-        artist,
-        song: song.title,
-        thumb: song.image || "",
-        localFile: song.file || "",
-      };
-    })
-    .filter(Boolean);
-}
-
-function getPrimaryLocalArtist(artistText) {
-  return (
-    String(artistText || "")
-      .split(/\s*(?:,|;|&|\band\b|\bft\.?\b|\bfeat\.?\b|\bx\b)\s*/i)
-      .map((name) => cleanupArtistName(name))
-      .find((name) => name && isLikelyRealArtistName(name)) || ""
-  );
-}
-
-function shouldExcludeArtistName(name) {
-  const value = cleanupArtistName(name);
-  return !value || GENERIC_MUSIC_CHANNEL_PATTERNS.test(value) || /(^|\s)(dj|remix|producer)(\s|$)/i.test(value);
-}
-
-function mergeArtistItems() {
-  const seen = new Set();
-  const merged = [];
-  Array.from(arguments)
-    .flat()
-    .forEach((item) => {
-      if (!item || shouldExcludeArtistName(item.artist)) return;
-      const key = normalizeSongIdentity(item.artist, "");
-      if (!key) return;
-      if (seen.has(key)) {
-        const existing = merged.find((artistItem) => normalizeSongIdentity(artistItem.artist, "") === key);
-        if (existing) {
-          Object.keys(item).forEach((prop) => {
-            if (existing[prop] === undefined || existing[prop] === null || existing[prop] === "") existing[prop] = item[prop];
-          });
-        }
-        return;
-      }
-      seen.add(key);
-      merged.push({ ...item });
-    });
-  return merged;
-}
-
 function renderArtistRanking(artists) {
   const list = document.getElementById("artistRankingList");
-  if (!artists || artists.length === 0) {
-    list.innerHTML = '<div class="artist-loading">Chưa tìm thấy ca sĩ có bài hát tháng 5 phù hợp.</div>';
+  const visibleArtists = filterArtistItems(artists || []);
+  if (!visibleArtists.length) {
+    list.innerHTML = "";
     return;
   }
 
-  list.innerHTML = artists
+  list.innerHTML = visibleArtists
     .map((artist, i) => {
-      const photo = getArtistPhoto(artist, i);
-      const meta = hasResolvedMaySong(artist) ? `Bài nổi bật: ${artist.song}${artist.viewCount ? " · " + formatViewCount(artist.viewCount) : ""}` : "";
+      const sourceIndex = getArtistSourceIndex(artist);
+      const photo = getArtistPhoto(artist, sourceIndex);
+      const displayName = getArtistDisplayName(artist);
+      const rankClass = sourceIndex === 0 ? "gold" : sourceIndex === 1 ? "silver" : sourceIndex === 2 ? "bronze" : "";
+      const followed = isArtistFollowed(artist.artist);
       return `
-        <div class="artist-row" onclick="openArtistSongs(${i})">
-          <div class="artist-rank">${i + 1}</div>
-          <img class="artist-avatar" data-artist-photo="${i}" src="${photo}" alt="${artist.artist}" />
-          <div class="artist-info">
-            <div class="artist-name">${artist.artist}</div>
-            ${meta ? `<div class="artist-meta">${meta}</div>` : ""}
+        <article class="artist-card" style="--artist-delay:${i * 35}ms" onclick="openArtistSongs(${sourceIndex})">
+          <div class="artist-card-rank ${rankClass}">#${sourceIndex + 1}</div>
+          <button class="artist-card-play" type="button" onclick="event.stopPropagation(); openArtistSongs(${sourceIndex}, true)">▶</button>
+          <img class="artist-card-avatar" data-artist-photo="${sourceIndex}" src="${photo}" alt="${displayName}" loading="lazy" decoding="async" onerror="handleArtistImageError(this, ${sourceIndex})" />
+          <div class="artist-card-name">${displayName}</div>
+          <button class="artist-follow-btn ${followed ? "following" : ""}" type="button" onclick="toggleArtistFollow(event, '${escapeInlineString(artist.artist)}')">
+            ${followed ? "Unfollow" : "Follow"}
+          </button>
+        </article>
+      `;
+    })
+    .join("");
+
+  bindArtistPhotoLazyLoading();
+}
+
+function filterArtistItems(artists) {
+  const query = normalizeSearchText(artistSearchQuery);
+  return (artists || []).filter((artist) => {
+    const searchableName = normalizeSearchText([artist.artist, getArtistDisplayName(artist)].join(" "));
+    if (query && !searchableName.includes(query)) return false;
+    if (artistGenreFilter !== "Tất cả" && getArtistGenre(artist) !== artistGenreFilter) return false;
+    return true;
+  });
+}
+
+function getArtistSourceIndex(artist) {
+  const rank = Number(artist && artist.sourceRank);
+  return Number.isFinite(rank) && rank > 0 ? rank - 1 : 0;
+}
+
+function filterArtists() {
+  const input = document.getElementById("artistSearchInput");
+  artistSearchQuery = input ? input.value : "";
+  renderArtistRanking(monthlyArtistItems);
+}
+
+function setArtistGenreFilter(genre, button) {
+  artistGenreFilter = genre || "Tất cả";
+  document.querySelectorAll(".artist-genre-tabs button").forEach((btn) => btn.classList.remove("active"));
+  if (button) button.classList.add("active");
+  renderArtistRanking(monthlyArtistItems);
+}
+
+function getArtistGenre(artist) {
+  const source = normalizeSearchText((artist && artist.source) || "");
+  if (source.includes("rap") || source.includes("hip hop")) return "Rap/Hip-hop";
+  if (source.includes("bolero") || source.includes("tru tinh") || source.includes("indie") || source.includes("singer songwriter")) return "Ballad";
+  if (source.includes("pop") || source.includes("crossover") || source.includes("da linh vuc")) return "V-Pop";
+
+  const name = normalizeSearchText(artist && artist.artist);
+  if (/(bts|blackpink|twice|newjeans|exo|iu|bigbang)/i.test(name)) return "K-Pop";
+  if (/(karik|den vau|rhymastic|tlinh|hieuthuhai|obito|low g|mck|rap)/i.test(name)) return "Rap/Hip-hop";
+  if (/(ha anh tuan|my tam|le quyen|duc phuc|van mai huong|ai phuong|trinh thang binh|phuong ly|bich phuong|tang duy tan|juky san|quang hung|vu cat tuong)/i.test(name)) return "Ballad";
+  return "V-Pop";
+}
+
+function getArtistDisplayName(artist) {
+  const rawName = typeof artist === "string" ? artist : (artist && artist.artist) || "";
+  const exactNames = {
+    "Min (ST.319)": "MIN",
+    "Vũ. (Vũ Phong Thủy)": "Vũ.",
+    "Nicky (Hải Triều)": "Nicky",
+  };
+  if (exactNames[rawName]) return exactNames[rawName];
+  return rawName.replace(/\s*\((?:band|nhóm nhạc)\)\s*$/i, "").trim() || rawName;
+}
+
+function getArtistSongCount(artist, sourceIndex) {
+  if (artist && artist.songCount) return artist.songCount;
+  return Math.max(12, 30 - (sourceIndex % 11) - Math.floor(sourceIndex / 7));
+}
+
+function getArtistFollowerCount(artist, sourceIndex) {
+  const base = 980000 - sourceIndex * 17200;
+  return Math.max(42000, base + getArtistSongCount(artist, sourceIndex) * 1300);
+}
+
+function formatFollowerCount(value) {
+  if (value >= 1000000) return (value / 1000000).toFixed(1).replace(".0", "") + "M";
+  if (value >= 1000) return Math.round(value / 1000) + "K";
+  return String(value);
+}
+
+function readFollowedArtists() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem("listen_music_followed_artists") || "[]"));
+  } catch (e) {
+    localStorage.removeItem("listen_music_followed_artists");
+    return new Set();
+  }
+}
+
+function saveFollowedArtists() {
+  localStorage.setItem("listen_music_followed_artists", JSON.stringify(Array.from(followedArtistNames)));
+}
+
+function isArtistFollowed(name) {
+  return followedArtistNames.has(normalizeSearchText(name));
+}
+
+function toggleArtistFollow(event, artistName) {
+  if (event) event.stopPropagation();
+  const key = normalizeSearchText(artistName);
+  if (!key) return;
+  if (followedArtistNames.has(key)) {
+    followedArtistNames.delete(key);
+  } else {
+    followedArtistNames.add(key);
+  }
+  saveFollowedArtists();
+  renderArtistRanking(monthlyArtistItems);
+  renderArtistDetailHero(artistName);
+}
+
+function escapeInlineString(value) {
+  return String(value || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/\r?\n/g, " ")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "\\x3C")
+    .replace(/>/g, "\\x3E")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "\\'")
+    .replace(/`/g, "'");
+}
+
+function renderArtistDetailHero(artistName) {
+  const hero = document.getElementById("artistDetailHero");
+  if (!hero) return;
+  const items = getCurrentArtistItems();
+  const index = Math.max(
+    0,
+    items.findIndex((item) => item.artist === artistName),
+  );
+  currentArtistDetailIndex = index;
+  const artist = items[index] || { artist: artistName };
+  const photo = getArtistPhoto(artist, index);
+  const displayName = getArtistDisplayName(artist);
+  const followed = isArtistFollowed(artistName);
+  const followerCount = formatFollowerCount(getArtistFollowerCount(artist, index));
+  hero.style.backgroundImage = `linear-gradient(90deg, rgba(26,26,46,0.94), rgba(124,58,237,0.52), rgba(26,26,46,0.82)), url('${photo}')`;
+  hero.innerHTML = `
+    <div class="artist-detail-body">
+      <img class="artist-detail-avatar" src="${photo}" alt="${displayName}" onerror="handleArtistImageError(this, ${index})" />
+      <div class="artist-detail-copy">
+        <div class="artist-kicker">Nghệ sĩ</div>
+        <h1>${displayName}</h1>
+        <p>${followerCount} lượt theo dõi · ${getArtistSongCount(artist, index)} bài hát nổi bật</p>
+        <button class="artist-follow-btn artist-follow-large ${followed ? "following" : ""}" type="button" onclick="toggleArtistFollow(event, '${escapeInlineString(artistName)}')">
+          ${followed ? "Unfollow" : "Follow"}
+        </button>
+      </div>
+    </div>
+    <button class="yt-back-btn artist-refresh-btn" type="button" onclick="refreshCurrentArtistSongs()">Refresh</button>
+  `;
+  ensureArtistPhotoLoaded(index, 0);
+}
+
+function renderArtistSongsSection(items) {
+  return `
+    <section class="artist-detail-songs">
+      <div class="artist-detail-section-head">
+        <h2>Bài hát nổi bật</h2>
+      </div>
+      <div class="youtube-list">
+        ${renderArtistSongsListHtml(items)}
+      </div>
+    </section>
+  `;
+}
+
+function renderArtistSongsListHtml(items) {
+  return items
+    .map((item, i) => {
+      const title = item.snippet.title || "Bài hát";
+      const channel = item.snippet.channelTitle || "Nguồn nhạc";
+      const videoId = item.id && item.id.videoId;
+      const thumbs = item.snippet.thumbnails || {};
+      const thumb = (thumbs.medium || thumbs.high || thumbs.default || {}).url || (videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : "");
+      const safeVideoId = escapeInlineString(videoId);
+      const safeTitle = escapeInlineString(title);
+      const safeChannel = escapeInlineString(channel);
+      const safeThumb = escapeInlineString(thumb);
+      const displayTitle = escapeHtml(title);
+      const displayChannel = escapeHtml(channel);
+      const safeThumbAttr = escapeHtml(thumb);
+      return `
+        <div class="yt-song-item" data-playback-id="${getPlaybackId({ videoId })}" onclick="playYouTubeById('${safeVideoId}', '${safeTitle}', '${safeChannel}', '${safeThumb}')">
+          <div class="yt-song-num">${i + 1}</div>
+          <div class="yt-song-thumb">
+            <img src="${safeThumbAttr}" alt="${displayTitle}" />
+            <span class="yt-play-icon" onclick="handlePlaybackButtonClick(event, () => playYouTubeById('${safeVideoId}', '${safeTitle}', '${safeChannel}', '${safeThumb}'))">▶</span>
+          </div>
+          <div class="yt-song-info">
+            <div class="yt-song-title">${displayTitle}</div>
+            <div class="yt-song-channel">${displayChannel}</div>
           </div>
         </div>
       `;
@@ -2087,7 +3186,7 @@ function renderArtistRanking(artists) {
 }
 
 function openArtistSongs(index) {
-  const artist = (monthlyArtistItems.length ? monthlyArtistItems : getMusicSourceArtistSeeds())[index];
+  const artist = getCurrentArtistItems()[index];
   if (!artist) return;
 
   const artistName = artist.artist || "";
@@ -2096,8 +3195,9 @@ function openArtistSongs(index) {
   const list = document.getElementById("artistSongsList");
 
   showPage("artistSongsPage");
-  if (title) title.textContent = `Bài hát của ${artistName}`;
-  if (list) list.innerHTML = '<div class="yt-loading">🎵 Đang tải bài hát từ YouTube...</div>';
+  renderArtistDetailHero(artistName);
+  if (title) title.textContent = `Bài hát của ${getArtistDisplayName(artist)}`;
+  if (list) list.innerHTML = '<div class="yt-loading">🎵 Đang tìm kiếm bài hát dành cho bạn</div>';
 
   loadArtistSongsFromYouTube(artistName);
 }
@@ -2106,7 +3206,7 @@ function loadArtistSongsFromYouTube(artistName, forceReload) {
   const list = document.getElementById("artistSongsList");
   currentArtistSongsName = artistName;
   const cacheKey =
-    "yt_artist_songs_" +
+    "yt_artist_songs_music_only_v7_" +
     artistName
       .toLowerCase()
       .normalize("NFD")
@@ -2117,20 +3217,23 @@ function loadArtistSongsFromYouTube(artistName, forceReload) {
 
   const cached = !forceReload ? readTimedCache(cacheKey, CACHE_7_DAYS) : null;
   if (cached && cached.html) {
+    youtubePlaybackQueue = cached.queue || [];
     if (list) list.innerHTML = cached.html;
+    hydrateYouTubeListItems(list);
+    renderArtistDetailHero(artistName);
     return;
   }
 
-  fetchArtistYouTubeCandidates(artistName)
+  getDatabaseArtistSongs(artistName, 120)
     .then((items) => {
-      const matched = filterArtistSongVideos(items, artistName, 30);
+      const matched = filterArtistSongVideos(items, artistName, 120);
       if (!matched.length) {
         if (list) list.innerHTML = '<div class="yt-loading">Không tìm thấy bài hát phù hợp cho ca sĩ này.</div>';
         return;
       }
 
       const html = renderArtistSongsList(matched);
-      writeTimedCache(cacheKey, { html });
+      writeTimedCache(cacheKey, { html, queue: youtubePlaybackQueue });
     })
     .catch((error) => {
       console.error("Artist song fetch error:", error);
@@ -2138,8 +3241,8 @@ function loadArtistSongsFromYouTube(artistName, forceReload) {
         list.innerHTML = `
           <div class="t100-error-box">
             <div class="t100-error-icon">❌</div>
-            <div class="t100-error-title">Không tải được bài hát từ YouTube</div>
-            <div class="t100-error-body">${error && error.message ? error.message : "Vui lòng kiểm tra API key hoặc kết nối mạng."}</div>
+            <div class="t100-error-title">Không tải được bài hát</div>
+            <div class="t100-error-body">Nguồn nhạc đang tạm thời gián đoạn. Vui lòng thử lại sau.</div>
             <button class="t100-retry-btn" onclick="loadArtistSongsFromYouTube('${artistName.replace(/'/g, "\\'")}')">Thử lại</button>
           </div>
         `;
@@ -2150,32 +3253,45 @@ function loadArtistSongsFromYouTube(artistName, forceReload) {
 function refreshCurrentArtistSongs() {
   if (!currentArtistSongsName) return;
   const list = document.getElementById("artistSongsList");
-  if (list) list.innerHTML = '<div class="yt-loading">🔄 Đang refresh bài hát từ YouTube...</div>';
+  if (list) list.innerHTML = '<div class="yt-loading">🔄 Đang làm mới bài hát...</div>';
   loadArtistSongsFromYouTube(currentArtistSongsName, true);
 }
 
 function fetchArtistYouTubeCandidates(artistName) {
-  const queries = [`${artistName} official music video`, `${artistName} official audio`, `${artistName} live`, `${artistName} lyric video`, `${artistName} album`];
+  const queries = [`${artistName}`, `${artistName} official`, `${artistName} official music video`, `${artistName} official audio`, `${artistName} lyric video`, `${artistName} lyrics`, `${artistName} live`, `${artistName} performance`, `${artistName} album`, `${artistName} full album`, `${artistName} playlist`, `${artistName} topic`, `${artistName} vevo`, `${artistName} mv`, `${artistName} bài hát`, `${artistName} ca khúc`, `${artistName} nhạc`];
 
-  return promisePool(queries, 2, (query) => fetchYouTubeVideosWithFallback(query, 20).catch(() => [])).then((groups) => uniqueVideosById(groups.flat()));
+  return promisePool(queries, 3, (query) => fetchYouTubeVideosWithFallback(query, 50).catch(() => [])).then((groups) => uniqueVideosById(groups.flat()));
 }
 
 function filterArtistSongVideos(items, artistName, limit) {
   const artistKey = normalizeSearchText(artistName);
   const aliases = getArtistAliases(artistName).map(normalizeSearchText);
-  const source = (items || []).filter((item) => {
-    const title = item && item.snippet && item.snippet.title ? item.snippet.title : "";
-    return title && !isPlaylistLikeVideoTitle(title) && !/\b(karaoke|beat|instrumental|reaction|cover|shorts?|live\s*stream)\b/i.test(title);
-  });
+  const aliasMatches = (value) => aliases.some((alias) => alias && value.includes(alias)) || (artistKey && value.includes(artistKey));
 
-  const artistMatches = source.filter((item) => {
-    const title = item && item.snippet && item.snippet.title ? item.snippet.title : "";
-    const channel = item && item.snippet && item.snippet.channelTitle ? item.snippet.channelTitle : "";
-    const haystack = normalizeSearchText(`${title} ${channel}`);
-    return aliases.some((alias) => alias && haystack.includes(alias)) || (artistKey && haystack.includes(artistKey));
-  });
+  const scored = uniqueVideosById(items)
+    .map((item, originalIndex) => {
+      const snippet = (item && item.snippet) || {};
+      const title = snippet.title || "";
+      const channel = snippet.channelTitle || "";
+      const normalizedTitle = normalizeSearchText(title);
+      const normalizedChannel = normalizeSearchText(channel);
+      const haystack = normalizeSearchText(`${title} ${channel}`);
 
-  return uniqueVideosById(artistMatches).slice(0, limit || 30);
+      if (!title) return null;
+      if (!aliasMatches(haystack)) return null;
+
+      let score = 0;
+      if (aliasMatches(normalizedChannel)) score += 70;
+      if (/\b(official|vevo|topic)\b/i.test(channel)) score += 35;
+      if (aliasMatches(normalizedTitle)) score += 30;
+      if (/\b(official|music video|mv|audio|lyrics?|lyric video|visualizer|live|performance|album)\b/i.test(title)) score += 18;
+
+      return { item, score, originalIndex };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex);
+
+  return scored.map((entry) => entry.item).slice(0, limit || 120);
 }
 
 function uniqueVideosById(items) {
@@ -2192,83 +3308,25 @@ function renderArtistSongsList(items) {
   const list = document.getElementById("artistSongsList");
   if (!list) return "";
 
-  const html = items
-    .map((item, i) => {
-      const title = item.snippet.title || "Bài hát";
-      const channel = item.snippet.channelTitle || "YouTube";
-      const videoId = item.id && item.id.videoId;
+  youtubePlaybackQueue = (items || [])
+    .filter((item) => item && item.id && item.id.videoId)
+    .map((item) => {
+      const videoId = item.id.videoId;
       const thumbs = item.snippet.thumbnails || {};
-      const thumb = (thumbs.medium || thumbs.high || thumbs.default || {}).url || (videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : "");
+      const thumb = (thumbs.medium || thumbs.high || thumbs.default || {}).url || getYouTubeVideoThumbUrl(videoId);
+      return {
+        videoId,
+        title: item.snippet.title || "Bài hát",
+        artist: item.snippet.channelTitle || "Nguồn nhạc",
+        image: thumb,
+      };
+    });
 
-      return `
-        <div class="yt-song-item" onclick="playYouTube('${videoId}', \`${title.replace(/`/g, "'")}\`)">
-          <div class="yt-song-num">${i + 1}</div>
-          <div class="yt-song-thumb">
-            <img src="${thumb}" alt="${title}" />
-            <span class="yt-play-icon">▶</span>
-          </div>
-          <div class="yt-song-info">
-            <div class="yt-song-title">${title}</div>
-            <div class="yt-song-channel">YouTube · ${channel}</div>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
+  const html = renderArtistSongsSection(items);
 
   list.innerHTML = html;
+  hydrateYouTubeListItems(list);
   return html;
-}
-
-function loadMonthlySongs(month) {
-  const count = document.getElementById("artistSongCount");
-  renderMonthlySongs(monthlyArtistItems);
-  if (count) count.textContent = `${countResolvedMaySongs(monthlyArtistItems)} video`;
-}
-
-function fetchMaySongVideosForSourcePairs() {
-  const period = getArtistPeriod(5);
-  const publishedAfter = `${period.year}-05-01T00:00:00Z`;
-  const publishedBefore = `${period.year}-06-01T00:00:00Z`;
-  return promisePool(getMusicSourceArtistSeeds(), 4, (item) => fetchYouTubeVideoForSourcePair(item, publishedAfter, publishedBefore)).then((items) => items.filter(Boolean).sort((a, b) => Number(b.viewCount || 0) - Number(a.viewCount || 0)));
-}
-
-function fetchYouTubeVideoForSourcePair(item, publishedAfter, publishedBefore) {
-  const query = `${item.song} ${item.artist} official mv`;
-  return fetchYouTubeVideosByPublishedMonth(query, 6, publishedAfter, publishedBefore)
-    .then((videos) => fetchYouTubeVideoStatistics(videos))
-    .then((videosWithStats) => pickBestSourcePairVideo(item, videosWithStats))
-    .then((bestMatch) => bestMatch || fetchYouTubeVideoForArtistMonth(item, publishedAfter, publishedBefore))
-    .catch((error) => {
-      console.warn("Skip source pair:", item.artist, item.song, error);
-      return null;
-    });
-}
-
-function fetchYouTubeVideoForArtistMonth(item, publishedAfter, publishedBefore) {
-  const artist = getPrimaryLocalArtist(item.artist) || cleanupArtistName(item.artist);
-  const query = `${artist} official music`;
-  return fetchYouTubeVideosByPublishedMonth(query, 12, publishedAfter, publishedBefore)
-    .then((videos) => fetchYouTubeVideoStatistics(videos))
-    .then((videosWithStats) => pickBestArtistMonthVideo(item, videosWithStats));
-}
-
-function pickBestSourcePairVideo(sourceItem, videos) {
-  return (
-    (videos || [])
-      .map((video) => normalizeSourcePairYouTubeVideo(sourceItem, video))
-      .filter(Boolean)
-      .sort((a, b) => Number(b.viewCount || 0) - Number(a.viewCount || 0))[0] || null
-  );
-}
-
-function pickBestArtistMonthVideo(sourceItem, videos) {
-  return (
-    (videos || [])
-      .map((video) => normalizeArtistMonthYouTubeVideo(sourceItem, video))
-      .filter(Boolean)
-      .sort((a, b) => Number(b.viewCount || 0) - Number(a.viewCount || 0))[0] || null
-  );
 }
 
 function promisePool(items, concurrency, worker) {
@@ -2290,234 +3348,6 @@ function promisePool(items, concurrency, worker) {
 
   const workers = Array.from({ length: Math.min(concurrency, items.length) }, runNext);
   return Promise.all(workers).then(() => results);
-}
-
-function uniqueYouTubeSearchItems(items) {
-  const seen = new Set();
-  return (items || []).filter((item) => {
-    const videoId = item && item.id && item.id.videoId;
-    if (!videoId || seen.has(videoId)) return false;
-    seen.add(videoId);
-    return true;
-  });
-}
-
-function buildMayArtistRankingFromYouTube(videos, limit) {
-  const byArtist = new Map();
-  (videos || [])
-    .map(normalizeMayYouTubeVideo)
-    .filter(Boolean)
-    .sort((a, b) => Number(b.viewCount || 0) - Number(a.viewCount || 0))
-    .forEach((item) => {
-      const key = normalizeSongIdentity(item.artist, "");
-      if (!key || byArtist.has(key)) return;
-      byArtist.set(key, item);
-    });
-
-  return Array.from(byArtist.values()).slice(0, limit);
-}
-
-function fetchYouTubeVideosByPublishedMonth(query, totalResults, publishedAfter, publishedBefore) {
-  const pageSize = Math.min(YOUTUBE_PAGE_SIZE, totalResults);
-  const items = [];
-  const seen = new Set();
-
-  const appendItems = (sourceItems) => {
-    (sourceItems || []).forEach((item) => {
-      const videoId = item && item.id && item.id.videoId;
-      if (!videoId || seen.has(videoId)) return;
-      seen.add(videoId);
-      items.push(item);
-    });
-  };
-
-  const fetchPage = (pageToken, keysLeft) => {
-    const remaining = totalResults - items.length;
-    const size = Math.min(pageSize, remaining);
-    const tokenPart = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
-    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&order=viewCount&safeSearch=none&videoEmbeddable=true` + `&publishedAfter=${encodeURIComponent(publishedAfter)}&publishedBefore=${encodeURIComponent(publishedBefore)}` + `&q=${encodeURIComponent(query)}&key=${getYTApiKey()}`;
-
-    return fetch(`${apiUrl}&maxResults=${size}${tokenPart}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) {
-          const error = new Error(data.error.message || "YouTube API error");
-          if (isYouTubeQuotaError(error) && keysLeft > 1) {
-            rotateYTApiKey();
-            return fetchPage(pageToken, keysLeft - 1);
-          }
-          throw error;
-        }
-        appendItems(data.items);
-        if (items.length >= totalResults || !data.nextPageToken) return items.slice(0, totalResults);
-        return fetchPage(data.nextPageToken, keysLeft);
-      });
-  };
-
-  return fetchPage("", YT_API_KEYS.length).catch((error) => {
-    if (!isYouTubeQuotaError(error)) throw error;
-    console.warn("YouTube quota exceeded. Switching to Invidious month search:", error);
-    return fetchYouTubeVideosFallback(query, totalResults);
-  });
-}
-
-function normalizeSourcePairYouTubeVideo(sourceItem, video) {
-  const snippet = video.snippet || {};
-  const stats = video.statistics || {};
-  const rawTitle = snippet.title || "";
-  const title = cleanYouTubeTitle(rawTitle);
-  const viewCount = Number(stats.viewCount || 0);
-
-  if (!video.id || !title || viewCount <= 0 || isPlaylistLikeVideoTitle(title)) return null;
-  if (!videoMatchesSourcePair(title, snippet.channelTitle || "", sourceItem)) return null;
-
-  const thumbs = snippet.thumbnails || {};
-  const thumb = (thumbs.high || thumbs.medium || thumbs.default || {}).url || getYouTubeVideoThumbUrl(video.id);
-
-  return {
-    ...sourceItem,
-    title,
-    thumb,
-    videoId: video.id,
-    viewCount,
-    publishedAt: snippet.publishedAt || "",
-    channelId: snippet.channelId || "",
-    channelTitle: snippet.channelTitle || "",
-  };
-}
-
-function normalizeArtistMonthYouTubeVideo(sourceItem, video) {
-  const snippet = video.snippet || {};
-  const stats = video.statistics || {};
-  const rawTitle = snippet.title || "";
-  const title = cleanYouTubeTitle(rawTitle);
-  const viewCount = Number(stats.viewCount || 0);
-
-  if (!video.id || !title || viewCount <= 0 || isPlaylistLikeVideoTitle(title)) return null;
-  if (/\b(karaoke|cover|reaction|live\s*stream|shorts?)\b/i.test(rawTitle)) return null;
-  if (!videoMatchesAnySourceArtist(title, snippet.channelTitle || "", sourceItem.artist)) return null;
-
-  const artist = getPrimaryLocalArtist(sourceItem.artist) || cleanupArtistName(sourceItem.artist);
-  const song = extractSongForSeedArtist(title, artist) || cleanupSongTitle(title);
-  if (!song || isPlaylistLikeVideoTitle(song)) return null;
-
-  const thumbs = snippet.thumbnails || {};
-  const thumb = (thumbs.high || thumbs.medium || thumbs.default || {}).url || getYouTubeVideoThumbUrl(video.id);
-
-  return {
-    ...sourceItem,
-    song,
-    title,
-    thumb,
-    videoId: video.id,
-    viewCount,
-    publishedAt: snippet.publishedAt || "",
-    channelId: snippet.channelId || "",
-    channelTitle: snippet.channelTitle || "",
-  };
-}
-
-function videoMatchesSourcePair(title, channelTitle, sourceItem) {
-  const haystack = normalizeSearchText(`${title} ${channelTitle}`);
-  const songKey = normalizeSearchText(sourceItem.song);
-  const primaryArtist = getPrimaryLocalArtist(sourceItem.artist) || cleanupArtistName(sourceItem.artist);
-  const artistAliases = getArtistAliases(primaryArtist).map(normalizeSearchText);
-
-  if (!songKey || !haystack.includes(songKey)) return false;
-  return artistAliases.some((alias) => alias && haystack.includes(alias));
-}
-
-function videoMatchesAnySourceArtist(title, channelTitle, artistText) {
-  const haystack = normalizeSearchText(`${title} ${channelTitle}`);
-  return getSourceArtistNames(artistText).some((name) =>
-    getArtistAliases(name)
-      .map(normalizeSearchText)
-      .some((alias) => alias && haystack.includes(alias)),
-  );
-}
-
-function getSourceArtistNames(artistText) {
-  const fullName = cleanupArtistName(artistText);
-  const names = String(artistText || "")
-    .split(/\s*(?:,|;|&|\band\b|\bft\.?\b|\bfeat\.?\b|\bx\b)\s*/i)
-    .map((name) => cleanupArtistName(name))
-    .filter(Boolean);
-
-  if (fullName && !names.includes(fullName)) names.unshift(fullName);
-  return names.filter(isLikelyRealArtistName);
-}
-
-function normalizeMayYouTubeVideo(video) {
-  const snippet = video.snippet || {};
-  const stats = video.statistics || {};
-  const rawTitle = snippet.title || "";
-  const title = cleanYouTubeTitle(rawTitle);
-  const channelTitle = snippet.channelTitle || "";
-  const viewCount = Number(stats.viewCount || 0);
-
-  if (!video.id || !title || viewCount <= 0 || isPlaylistLikeVideoTitle(title)) return null;
-
-  const artistSeed = findKnownArtistForVideo(title, channelTitle);
-  const artist = artistSeed ? artistSeed.artist : extractArtistFromVideoTitle(title, channelTitle);
-  if (!artist || !isLikelyRealArtistName(artist)) return null;
-
-  const thumbs = snippet.thumbnails || {};
-  const thumb = (thumbs.high || thumbs.medium || thumbs.default || {}).url || getYouTubeVideoThumbUrl(video.id);
-  const song = artistSeed ? extractSongForSeedArtist(title, artist) : extractSongFromVideoTitle(title);
-  if (!song || isPlaylistLikeVideoTitle(song)) return null;
-
-  return {
-    artist,
-    song,
-    title,
-    thumb,
-    videoId: video.id,
-    viewCount,
-    publishedAt: snippet.publishedAt || "",
-    source: artistSeed ? artistSeed.source : "YouTube",
-  };
-}
-
-function findKnownArtistForVideo(title, channelTitle) {
-  const haystack = `${title} ${channelTitle}`;
-  return getMusicSourceArtistSeeds().find((artistItem) => videoMatchesSeedArtist(haystack, channelTitle, artistItem.artist));
-}
-
-function normalizeSeedArtistYouTubeVideo(artistItem, video) {
-  const snippet = video.snippet || {};
-  const stats = video.statistics || {};
-  const title = cleanYouTubeTitle(snippet.title || "");
-  const artist = cleanupArtistName(artistItem.artist);
-  const viewCount = Number(stats.viewCount || 0);
-
-  if (!video.id || !title || viewCount <= 0 || isPlaylistLikeVideoTitle(title)) return null;
-  if (!videoMatchesSeedArtist(title, snippet.channelTitle || "", artist)) return null;
-
-  const thumbs = snippet.thumbnails || {};
-  const thumb = (thumbs.high || thumbs.medium || thumbs.default || {}).url || getYouTubeVideoThumbUrl(video.id);
-  const song = extractSongForSeedArtist(title, artist);
-
-  return {
-    artist,
-    song,
-    title,
-    thumb,
-    videoId: video.id,
-    viewCount,
-    publishedAt: snippet.publishedAt || "",
-    source: artistItem.source || "Zing MP3",
-  };
-}
-
-function videoMatchesSeedArtist(title, channelTitle, artist) {
-  const titleKey = normalizeSearchText(title);
-  const channelKey = normalizeSearchText(cleanupArtistName(channelTitle));
-  const artistKey = normalizeSearchText(artist);
-  const aliases = getArtistAliases(artist).map(normalizeSearchText);
-
-  if (aliases.some((alias) => alias && titleKey.includes(alias))) return true;
-  if (channelKey && (channelKey.includes(artistKey) || artistKey.includes(channelKey))) return true;
-  return false;
 }
 
 function getArtistAliases(artist) {
@@ -2546,112 +3376,22 @@ function fetchYouTubeVideoStatistics(searchItems) {
   const ids = searchItems.map((item) => item.id.videoId).filter(Boolean);
   if (!ids.length) return Promise.resolve([]);
 
-  if (searchItems.every((item) => item.invidious)) {
-    const missingStats = searchItems.filter((item) => !item.invidious.viewCount);
-    if (!missingStats.length) {
-      return Promise.resolve(
-        searchItems.map((item) => ({
-          id: item.id.videoId,
-          snippet: item.snippet || {},
-          statistics: { viewCount: item.invidious.viewCount || 0 },
-          invidious: item.invidious,
-        })),
-      );
-    }
-
-    return promisePool(searchItems, 4, (item) => {
-      if (item.invidious.viewCount) {
-        return {
-          id: item.id.videoId,
-          snippet: item.snippet || {},
-          statistics: { viewCount: item.invidious.viewCount || 0 },
-          invidious: item.invidious,
-        };
-      }
-      return fetchInvidiousVideoDetails(item.id.videoId).catch(() => ({
-        id: item.id.videoId,
-        snippet: item.snippet || {},
-        statistics: { viewCount: 0 },
-        invidious: item.invidious,
-      }));
-    });
-  }
-
   const chunks = [];
   for (let i = 0; i < ids.length; i += 50) chunks.push(ids.slice(i, i + 50));
 
   return Promise.all(
     chunks.map((chunk) => {
-      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${chunk.map(encodeURIComponent).join(",")}&key=${getYTApiKey()}`;
-      return fetch(url)
-        .then((r) => r.json())
+      return fetchYouTubeApi("videos", {
+        part: "snippet,statistics",
+        id: chunk.join(","),
+      })
         .then((data) => {
           if (data.error) throw new Error(data.error.message || "YouTube API error");
           return data.items || [];
         });
     }),
   )
-    .then((groups) => groups.flat())
-    .catch((error) => {
-      if (!isYouTubeQuotaError(error)) throw error;
-      console.warn("YouTube quota exceeded. Using Invidious statistics fallback:", error);
-      return promisePool(searchItems, 4, (item) => {
-        if (item.invidious && item.invidious.viewCount) {
-          return {
-            id: item.id.videoId,
-            snippet: item.snippet || {},
-            statistics: { viewCount: item.invidious.viewCount || 0 },
-            invidious: item.invidious,
-          };
-        }
-        return fetchInvidiousVideoDetails(item.id.videoId).catch(() => ({
-          id: item.id.videoId,
-          snippet: item.snippet || {},
-          statistics: { viewCount: 0 },
-          invidious: item.invidious || {},
-        }));
-      });
-    });
-}
-
-function buildArtistRankingFromVideos(videos, limit) {
-  const artistMap = new Map();
-  videos
-    .map((video) => normalizeYouTubeMusicVideo(video))
-    .filter(Boolean)
-    .sort((a, b) => b.viewCount - a.viewCount)
-    .forEach((item) => {
-      const key = normalizeSongIdentity(item.artist, "");
-      if (!key || artistMap.has(key)) return;
-      artistMap.set(key, item);
-    });
-
-  return Array.from(artistMap.values()).slice(0, limit);
-}
-
-function normalizeYouTubeMusicVideo(video) {
-  const snippet = video.snippet || {};
-  const stats = video.statistics || {};
-  const title = cleanYouTubeTitle(snippet.title || "");
-  if (isPlaylistLikeVideoTitle(title)) return null;
-
-  const artist = extractArtistFromVideoTitle(title, snippet.channelTitle || "YouTube");
-  const song = extractSongFromVideoTitle(title);
-  const thumbs = snippet.thumbnails || {};
-  const thumb = (thumbs.high || thumbs.medium || thumbs.default || {}).url || "";
-  const videoId = video.id;
-  const viewCount = Number(stats.viewCount || 0);
-  if (!videoId || !title || !artist || !isLikelyRealArtistName(artist) || viewCount <= 0) return null;
-
-  return {
-    artist,
-    song,
-    title,
-    thumb,
-    videoId,
-    viewCount,
-    publishedAt: snippet.publishedAt || "",
-  };
+    .then((groups) => groups.flat());
 }
 
 function cleanYouTubeTitle(title) {
@@ -2695,39 +3435,12 @@ function extractSongFromVideoTitle(title) {
   return parts[0] || title || "Bài hát nổi bật";
 }
 
-function extractSongForSeedArtist(title, artist) {
-  const cleanedTitle = cleanYouTubeTitle(title);
-  const artistAliases = getArtistAliases(artist).map(normalizeSearchText);
-  const parts = cleanedTitle
-    .split(/\s[-–—|]\s|\s\|\s|:/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  const withoutArtistPart = parts.find((part) => {
-    const key = normalizeSearchText(part);
-    return key && !artistAliases.some((alias) => alias && (key === alias || key.includes(alias)));
-  });
-
-  if (withoutArtistPart) return cleanupSongTitle(withoutArtistPart);
-
-  let song = cleanedTitle;
-  getArtistAliases(artist).forEach((alias) => {
-    song = song.replace(new RegExp(escapeRegExp(alias), "gi"), " ");
-  });
-
-  return cleanupSongTitle(song) || cleanedTitle || "Bài hát nổi bật";
-}
-
 function cleanupSongTitle(title) {
   return String(title || "")
     .replace(/\b(ft|feat|featuring|prod|official|mv|music video|audio|lyrics?|visualizer)\b/gi, " ")
     .replace(/\s+/g, " ")
     .replace(/^[-–—|:]+|[-–—|:]+$/g, "")
     .trim();
-}
-
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function cleanupArtistName(name) {
@@ -2767,51 +3480,32 @@ function formatViewCount(value) {
   return count + " views";
 }
 
-function renderMonthlySongs(artists) {
-  const list = document.getElementById("monthlySongList");
-  if (!list) return;
-  const resolvedSongs = (artists || []).map((item, sourceIndex) => ({ item, sourceIndex })).filter(({ item }) => hasResolvedMaySong(item));
-
-  if (resolvedSongs.length === 0) {
-    list.innerHTML = "";
-    return;
-  }
-
-  list.innerHTML = resolvedSongs
-    .map(({ item, sourceIndex }, i) => {
-      const thumb = getSongThumb(item, i);
-      return `
-        <div class="artist-song-row" onclick="playCuratedMaySong(${sourceIndex})">
-          <div class="artist-rank">${i + 1}</div>
-          <div class="artist-song-thumb">
-            <img data-song-thumb="${i}" src="${thumb}" alt="${item.song}" />
-            <span>▶</span>
-          </div>
-          <div class="artist-info">
-            <div class="artist-name">${item.song}</div>
-            <div class="artist-meta">${item.artist}</div>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-}
-
 function getArtistPhoto(artist, index) {
-  if (artist.photo) return artist.photo;
+  if (isUsableArtistPortrait(artist.photo, artist.preferSongThumb, artist.artist)) return artist.photo;
+  artist.photo = "";
 
   const cached = artist.preferSongThumb ? null : readTimedCache(getArtistPhotoCacheKey(artist.artist), CACHE_7_DAYS);
-  if (cached && cached.url) {
+  if (cached && isUsableArtistPortrait(cached.url, artist.preferSongThumb, artist.artist)) {
     artist.photo = cached.url;
     return artist.photo;
   }
 
+  const fallbackPhoto = getArtistFallbackPhoto(artist);
+  if (fallbackPhoto) return fallbackPhoto;
+
   return buildArtistPlaceholder(artist.artist, index);
+}
+
+function getArtistFallbackPhoto(artist) {
+  if (!artist) return "";
+  return artist.fallbackPhoto || artist.songThumb || artist.thumbnail || artist.thumb || "";
 }
 
 function getArtistPhotoCacheKey(artistName) {
   return (
     "artist_photo_" +
+    ARTIST_PHOTO_CACHE_VERSION +
+    "_" +
     artistName
       .toLowerCase()
       .normalize("NFD")
@@ -2855,26 +3549,117 @@ function isArtistPlaceholderPhoto(url) {
   return !url || String(url).startsWith("data:image/svg+xml");
 }
 
+function isLikelySongThumbnail(url) {
+  const value = String(url || "").toLowerCase();
+  return /i\.ytimg\.com\/vi\//.test(value) || /img\.youtube\.com\/vi\//.test(value) || /\/(hqdefault|mqdefault|sddefault|maxresdefault)\.jpg/.test(value);
+}
+
+function isLikelyWrongArtistPhoto(url, artistName) {
+  const dbArtists = (artistSongDatabaseCache && artistSongDatabaseCache.artists) || [];
+  if (!url || !dbArtists.length) return false;
+
+  const imageText = normalizeArtistLookupText(decodeURIComponent(String(url || "")));
+  if (!imageText) return false;
+
+  const targetAliases = getArtistAliases(artistName).map(normalizeArtistLookupText).filter((alias) => alias.length >= 4);
+  const targetMatches = targetAliases.some((alias) => imageText.includes(alias.replace(/\s+/g, " ")) || imageText.includes(alias.replace(/\s+/g, "")));
+
+  return dbArtists.some((artist) => {
+    const otherName = artist && artist.name;
+    if (!otherName || normalizeArtistLookupText(otherName) === normalizeArtistLookupText(artistName)) return false;
+    return getArtistAliases(otherName)
+      .map(normalizeArtistLookupText)
+      .filter((alias) => alias.length >= 4)
+      .some((alias) => {
+        const spaced = alias.replace(/\s+/g, " ");
+        const compact = alias.replace(/\s+/g, "");
+        return (imageText.includes(spaced) || imageText.includes(compact)) && !targetMatches;
+      });
+  });
+}
+
+function isUsableArtistPortrait(url, allowSongThumbnail, artistName) {
+  return !!url && !isArtistPlaceholderPhoto(url) && (allowSongThumbnail || !isLikelySongThumbnail(url)) && !isLikelyWrongArtistPhoto(url, artistName);
+}
+
 function applyArtistPhoto(index, url) {
-  if (!url || isArtistPlaceholderPhoto(url)) return;
-  const artist = (monthlyArtistItems.length ? monthlyArtistItems : getMusicSourceArtistSeeds())[index];
-  if (!artist) return;
+  const artist = getCurrentArtistItems()[index];
+  if (!artist || !isUsableArtistPortrait(url, artist.preferSongThumb, artist.artist)) return;
   artist.photo = url;
-  writeTimedCache(getArtistPhotoCacheKey(artist.artist), { url });
+  if (!isLikelySongThumbnail(url)) writeTimedCache(getArtistPhotoCacheKey(artist.artist), { url });
   updateArtistPhoto(index, url);
 }
 
-function loadArtistPhotos() {
-  (monthlyArtistItems.length ? monthlyArtistItems : getMusicSourceArtistSeeds()).forEach((artist, index) => {
-    if (!isArtistPlaceholderPhoto(artist.photo) || artist.photoLoading) return;
+function getCurrentArtistItems() {
+  return monthlyArtistItems.length ? monthlyArtistItems : [];
+}
 
-    const cacheKey = getArtistPhotoCacheKey(artist.artist);
-    const cached = artist.preferSongThumb ? null : readTimedCache(cacheKey, CACHE_7_DAYS);
-    if (cached && cached.url) {
-      applyArtistPhoto(index, cached.url);
-      return;
-    }
+function ensureArtistPhotoLoaded(index, delay) {
+  if (!ARTIST_DYNAMIC_PHOTO_LOOKUP_ENABLED) return;
+  const artist = getCurrentArtistItems()[index];
+  if (!artist || isUsableArtistPortrait(artist.photo, artist.preferSongThumb, artist.artist) || artist.photoLoading) return;
+  artist.photo = "";
 
+  const cacheKey = getArtistPhotoCacheKey(artist.artist);
+  const cached = artist.preferSongThumb ? null : readTimedCache(cacheKey, CACHE_7_DAYS);
+  if (cached && isUsableArtistPortrait(cached.url, artist.preferSongThumb, artist.artist)) {
+    applyArtistPhoto(index, cached.url);
+    return;
+  }
+
+  artist.photoLoading = true;
+  setTimeout(() => {
+    fetchArtistPhotoUrl(artist.artist, artist.song, artist.channelId, artist.preferSongThumb)
+      .then((url) => applyArtistPhoto(index, url))
+      .catch(() => {})
+      .finally(() => {
+        artist.photoLoading = false;
+      });
+  }, delay || 0);
+}
+
+function loadArtistPhotos(indexes) {
+  const items = getCurrentArtistItems();
+  const orderedIndexes = Array.isArray(indexes) && indexes.length ? indexes : items.map((_, index) => index);
+  orderedIndexes.forEach((index, order) => ensureArtistPhotoLoaded(index, order * 70));
+}
+
+function bindArtistPhotoLazyLoading() {
+  const images = Array.from(document.querySelectorAll(".artist-card-avatar[data-artist-photo]"));
+  const firstIndexes = images.slice(0, 25).map((img) => Number(img.getAttribute("data-artist-photo"))).filter(Number.isFinite);
+  loadArtistPhotos(firstIndexes);
+
+  if (!("IntersectionObserver" in window)) {
+    loadArtistPhotos(images.map((img) => Number(img.getAttribute("data-artist-photo"))).filter(Number.isFinite));
+    return;
+  }
+
+  if (artistPhotoObserver) artistPhotoObserver.disconnect();
+  artistPhotoObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const index = Number(entry.target.getAttribute("data-artist-photo"));
+        if (Number.isFinite(index)) ensureArtistPhotoLoaded(index, 0);
+        artistPhotoObserver.unobserve(entry.target);
+      });
+    },
+    { root: null, rootMargin: "900px 0px", threshold: 0.01 },
+  );
+
+  images.forEach((img) => {
+    const index = Number(img.getAttribute("data-artist-photo"));
+    if (!Number.isFinite(index)) return;
+    const artist = getCurrentArtistItems()[index];
+    if (artist && isUsableArtistPortrait(artist.photo, artist.preferSongThumb, artist.artist)) return;
+    artistPhotoObserver.observe(img);
+  });
+}
+
+function loadAllArtistPhotosInBackground() {
+  if (!ARTIST_DYNAMIC_PHOTO_LOOKUP_ENABLED) return;
+  const items = getCurrentArtistItems();
+  items.forEach((artist, index) => {
     artist.photoLoading = true;
     setTimeout(() => {
       fetchArtistPhotoUrl(artist.artist, artist.song, artist.channelId, artist.preferSongThumb)
@@ -2883,7 +3668,7 @@ function loadArtistPhotos() {
         .finally(() => {
           artist.photoLoading = false;
         });
-    }, index * 120);
+    }, index * 260);
   });
 }
 
@@ -2922,18 +3707,15 @@ function pickDeezerArtistPhoto(data, artistName) {
   const items = (data && data.data) || [];
   if (!items.length) return "";
 
-  const target = artistName
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  const match =
-    items.find((item) => {
-      const name = (item.name || "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-      return name === target || name.includes(target) || target.includes(name);
-    }) || items[0];
+  const target = normalizeArtistLookupText(artistName);
+  const aliases = getArtistAliases(artistName).map(normalizeArtistLookupText).filter(Boolean);
+  const match = items.find((item) => {
+    const name = normalizeArtistLookupText(item.name || "");
+    if (!name) return false;
+    return aliases.some((alias) => alias === name || (alias.length >= 5 && name.includes(alias)) || (name.length >= 5 && alias.includes(name)));
+  });
+
+  if (!match) return "";
 
   return match.picture_xl || match.picture_big || match.picture_medium || "";
 }
@@ -2943,18 +3725,159 @@ function upscaleItunesArtwork(url) {
   return url.replace(/100x100bb\.jpg$/, "600x600bb.jpg");
 }
 
+function normalizeArtistLookupText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function pickWikipediaArtistPhoto(data, artistName) {
+  const pages = Object.values((data && data.query && data.query.pages) || {});
+  if (!pages.length) return "";
+
+  const target = normalizeArtistLookupText(artistName);
+  const scored = pages
+    .map((page) => {
+      const title = normalizeArtistLookupText(page.title);
+      const source = (page.original && page.original.source) || (page.thumbnail && page.thumbnail.source) || "";
+      let score = 0;
+      if (title === target) score += 100;
+      if (title.includes(target) || target.includes(title)) score += 70;
+      if (/\b(ca si|singer|musician|rapper|band|nhom nhac|artist)\b/.test(title)) score += 18;
+      if (/\.(jpe?g|png|webp)(\?|$)/i.test(source)) score += 10;
+      return { source, score };
+    })
+    .filter((item) => item.source && item.score > 0 && !/logo|icon|poster|album|single/i.test(item.source))
+    .sort((a, b) => b.score - a.score);
+
+  return (scored[0] && scored[0].source) || "";
+}
+
+function fetchWikipediaArtistPhotoUrl(artistName, host, extraTerm) {
+  const params = new URLSearchParams({
+    action: "query",
+    generator: "search",
+    gsrsearch: [artistName, extraTerm || ""].filter(Boolean).join(" "),
+    gsrnamespace: "0",
+    gsrlimit: "6",
+    prop: "pageimages",
+    piprop: "thumbnail|original",
+    pithumbsize: "700",
+    redirects: "1",
+    format: "json",
+    origin: "*",
+  });
+
+  return fetch(`https://${host}/w/api.php?${params.toString()}`)
+    .then((r) => r.json())
+    .then((data) => pickWikipediaArtistPhoto(data, artistName))
+    .catch(() => "");
+}
+
+function pickCommonsArtistPhoto(data) {
+  const pages = Object.values((data && data.query && data.query.pages) || {});
+  const page = pages.find((item) => {
+    const url = item.thumbnail && item.thumbnail.source;
+    return url && /\.(jpe?g|png|webp)(\?|$)/i.test(url) && !/logo|icon|poster|album|single/i.test(url);
+  });
+  return (page && page.thumbnail && page.thumbnail.source) || "";
+}
+
+function fetchCommonsArtistPhotoUrl(artistName) {
+  const params = new URLSearchParams({
+    action: "query",
+    generator: "search",
+    gsrnamespace: "6",
+    gsrsearch: `${artistName} singer musician portrait`,
+    gsrlimit: "8",
+    prop: "pageimages",
+    piprop: "thumbnail",
+    pithumbsize: "700",
+    format: "json",
+    origin: "*",
+  });
+
+  return fetch(`https://commons.wikimedia.org/w/api.php?${params.toString()}`)
+    .then((r) => r.json())
+    .then(pickCommonsArtistPhoto)
+    .catch(() => "");
+}
+
+function getCommonsRedirectUrl(fileName) {
+  if (!fileName) return "";
+  return `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(fileName)}?width=700`;
+}
+
+function pickWikidataImageFile(data) {
+  const entities = Object.values((data && data.entities) || {});
+  for (const entity of entities) {
+    const claims = entity.claims && entity.claims.P18;
+    const fileName = claims && claims[0] && claims[0].mainsnak && claims[0].mainsnak.datavalue && claims[0].mainsnak.datavalue.value;
+    if (fileName && !/logo|icon|poster|album|single/i.test(fileName)) return fileName;
+  }
+  return "";
+}
+
+function fetchWikidataArtistPhotoUrl(artistName, language) {
+  const searchParams = new URLSearchParams({
+    action: "wbsearchentities",
+    search: artistName,
+    language: language || "vi",
+    uselang: language || "vi",
+    limit: "6",
+    format: "json",
+    origin: "*",
+  });
+
+  return fetch(`https://www.wikidata.org/w/api.php?${searchParams.toString()}`)
+    .then((r) => r.json())
+    .then((data) => {
+      const ids = ((data && data.search) || []).map((item) => item.id).filter(Boolean).slice(0, 4);
+      if (!ids.length) return "";
+      const entityParams = new URLSearchParams({
+        action: "wbgetentities",
+        ids: ids.join("|"),
+        props: "claims",
+        format: "json",
+        origin: "*",
+      });
+      return fetch(`https://www.wikidata.org/w/api.php?${entityParams.toString()}`)
+        .then((r) => r.json())
+        .then((entityData) => getCommonsRedirectUrl(pickWikidataImageFile(entityData)));
+    })
+    .catch(() => "");
+}
+
 function fetchArtistPhotoUrl(artistName, featuredSong, channelId, preferSongThumb) {
   const q = encodeURIComponent(artistName);
 
-  if (preferSongThumb && featuredSong) {
-    return fetchSongThumbUrl(featuredSong, artistName).then((url) => {
+  return fetchWikipediaArtistPhotoUrl(artistName, "vi.wikipedia.org", "ca sĩ")
+    .then((url) => {
       if (url) return url;
-      return fetchArtistPhotoUrl(artistName, "", channelId, false);
-    });
-  }
-
-  return fetchDeezerJsonp(`/search/artist?q=${q}`)
-    .then((data) => pickDeezerArtistPhoto(data, artistName))
+      return fetchWikipediaArtistPhotoUrl(artistName, "en.wikipedia.org", "singer musician");
+    })
+    .then((url) => {
+      if (url) return url;
+      return fetchWikidataArtistPhotoUrl(artistName, "vi");
+    })
+    .then((url) => {
+      if (url) return url;
+      return fetchWikidataArtistPhotoUrl(artistName, "en");
+    })
+    .then((url) => {
+      if (url) return url;
+      return fetchCommonsArtistPhotoUrl(artistName);
+    })
+    .then((url) => {
+      if (url) return url;
+      return fetchDeezerJsonp(`/search/artist?q=${q}`)
+        .then((data) => pickDeezerArtistPhoto(data, artistName))
+        .catch(() => "");
+    })
     .catch(() => "")
     .then((url) => {
       if (url) return url;
@@ -2965,31 +3888,17 @@ function fetchArtistPhotoUrl(artistName, featuredSong, channelId, preferSongThum
     })
     .then((url) => {
       if (url) return url;
-      return fetch(`https://itunes.apple.com/search?term=${q}&entity=musicArtist&limit=1`)
-        .then((r) => r.json())
-        .then((data) => {
-          const item = data.results && data.results[0];
-          return item && item.artworkUrl100 ? upscaleItunesArtwork(item.artworkUrl100) : "";
-        })
-        .catch(() => "");
-    })
-    .then((url) => {
-      if (url) return url;
       return fetchYouTubeChannelPhotoUrl(artistName, channelId);
-    })
-    .then((url) => {
-      if (url || !featuredSong) return url;
-      return fetchSongThumbUrl(featuredSong, artistName);
     })
     .catch(() => "");
 }
 
 function fetchYouTubeChannelPhotoUrl(artistName, channelId) {
   if (channelId) {
-    const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${encodeURIComponent(channelId)}` + `&key=${getYTApiKey()}`;
-
-    return fetch(channelUrl)
-      .then((r) => r.json())
+    return fetchYouTubeApi("channels", {
+      part: "snippet",
+      id: channelId,
+    })
       .then((data) => {
         if (data.error) throw new Error(data.error.message || "YouTube API error");
         const item = data.items && data.items[0];
@@ -2998,16 +3907,17 @@ function fetchYouTubeChannelPhotoUrl(artistName, channelId) {
       })
       .catch((error) => {
         if (!isYouTubeQuotaError(error)) return "";
-        rotateYTApiKey();
         return "";
       });
   }
 
   const query = `${artistName} official artist music`;
-  const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=5` + `&q=${encodeURIComponent(query)}&key=${getYTApiKey()}`;
-
-  return fetch(apiUrl)
-    .then((r) => r.json())
+  return fetchYouTubeApi("search", {
+    part: "snippet",
+    type: "channel",
+    maxResults: 5,
+    q: query,
+  })
     .then((data) => {
       if (data.error) throw new Error(data.error.message || "YouTube API error");
       const target = normalizeSearchText(artistName);
@@ -3022,7 +3932,6 @@ function fetchYouTubeChannelPhotoUrl(artistName, channelId) {
     })
     .catch((error) => {
       if (!isYouTubeQuotaError(error)) return "";
-      rotateYTApiKey();
       return "";
     });
 }
@@ -3058,171 +3967,29 @@ function updateArtistPhoto(index, url) {
   });
 }
 
-function getSongThumbCacheKey(item) {
-  return (
-    "song_thumb_" +
-    (item.song + "_" + item.artist)
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-  );
-}
-
-function getMaySongVideoCacheKey(item) {
-  const query = `${item.song} ${item.artist} official music video`;
-  return "yt_may_artist_song_" + query.toLowerCase().trim();
+function handleArtistImageError(img, index) {
+  if (!img) return;
+  const artist = getCurrentArtistItems()[index];
+  const fallback = buildArtistPlaceholder((artist && artist.artist) || "Artist", index || 0);
+  if (artist) artist.photo = fallback;
+  img.onerror = null;
+  img.src = fallback;
 }
 
 function getYouTubeVideoThumbUrl(videoId) {
   return `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
 }
 
-function getSongThumb(item, index) {
-  if (item.thumb) return item.thumb;
-
-  const cached = readTimedCache(getSongThumbCacheKey(item), CACHE_7_DAYS);
-  if (cached && cached.url) {
-    item.thumb = cached.url;
-    return item.thumb;
-  }
-
-  const videoCached = readTimedCache(getMaySongVideoCacheKey(item), CACHE_7_DAYS);
-  if (videoCached && videoCached.videoId) {
-    item.thumb = getYouTubeVideoThumbUrl(videoCached.videoId);
-    return item.thumb;
-  }
-
-  return buildSongPlaceholder(item.song, index);
-}
-
-function updateSongThumb(index, url) {
-  document.querySelectorAll(`[data-song-thumb="${index}"]`).forEach((img) => {
-    img.src = url;
-  });
-}
-
-function loadSongThumbnails() {
-  (monthlyArtistItems.length ? monthlyArtistItems : getMusicSourceArtistSeeds()).forEach((item, index) => {
-    if (!hasResolvedMaySong(item)) return;
-    if (item.thumb || item.thumbLoading) return;
-
-    const cacheKey = getSongThumbCacheKey(item);
-    const cached = readTimedCache(cacheKey, CACHE_7_DAYS);
-    if (cached && cached.url) {
-      item.thumb = cached.url;
-      updateSongThumb(index, item.thumb);
-      return;
-    }
-
-    const videoCached = readTimedCache(getMaySongVideoCacheKey(item), CACHE_7_DAYS);
-    if (videoCached && videoCached.videoId) {
-      item.thumb = getYouTubeVideoThumbUrl(videoCached.videoId);
-      writeTimedCache(cacheKey, { url: item.thumb });
-      updateSongThumb(index, item.thumb);
-      return;
-    }
-
-    item.thumbLoading = true;
-
-    setTimeout(() => {
-      fetchSongThumbUrl(item.song, item.artist)
-        .then((url) => {
-          if (!url) return;
-          item.thumb = url;
-          writeTimedCache(cacheKey, { url });
-          updateSongThumb(index, url);
-          if (isArtistPlaceholderPhoto(item.photo) && !item.photoLoading) {
-            updateArtistPhoto(index, url);
-          }
-        })
-        .catch(() => {})
-        .finally(() => {
-          item.thumbLoading = false;
-        });
-    }, index * 150);
-  });
-}
-
-function cacheMaySongVideo(index, video) {
-  const item = (monthlyArtistItems.length ? monthlyArtistItems : getMusicSourceArtistSeeds())[index];
-  if (!item || !video || !video.id || !video.id.videoId) return;
-
-  const videoId = video.id.videoId;
-  const thumbUrl = getYouTubeThumb(video);
-  item.videoId = videoId;
-  item.thumb = thumbUrl;
-  writeTimedCache(getMaySongVideoCacheKey(item), { videoId });
-  writeTimedCache(getSongThumbCacheKey(item), { url: thumbUrl });
-  updateSongThumb(index, thumbUrl);
-}
-
-function playCuratedMaySong(index) {
-  const item = (monthlyArtistItems.length ? monthlyArtistItems : getMusicSourceArtistSeeds())[index];
-  if (!item) return;
-
-  if (!hasResolvedMaySong(item)) {
-    alert("Chưa tìm thấy bài hát tháng 5 phù hợp cho ca sĩ này trên YouTube.");
-    return;
-  }
-
-  if (item.localFile) {
-    const localIndex = songs.findIndex((song) => song.file === item.localFile);
-    if (localIndex !== -1) {
-      playSound(localIndex);
-      return;
-    }
-  }
-
-  if (item.videoId) {
-    playYouTube(item.videoId, `${item.song} - ${item.artist}`);
-    return;
-  }
-
-  const query = `${item.song} ${item.artist} official music video`;
-  const cacheKey = getMaySongVideoCacheKey(item);
-  const cached = readTimedCache(cacheKey, CACHE_7_DAYS);
-
-  if (cached && cached.videoId) {
-    if (!item.thumb) {
-      item.thumb = getYouTubeVideoThumbUrl(cached.videoId);
-      updateSongThumb(index, item.thumb);
-    }
-    playYouTube(cached.videoId, `${item.song} - ${item.artist}`);
-    return;
-  }
-
-  fetchYouTubeVideos(query, 1)
-    .then((items) => {
-      const video = items[0];
-      if (!video || !video.id || !video.id.videoId) {
-        alert("Không tìm thấy video phù hợp cho bài này.");
-        return;
-      }
-      cacheMaySongVideo(index, video);
-      playYouTube(video.id.videoId, `${item.song} - ${item.artist}`);
-    })
-    .catch(() => {
-      alert("Lỗi kết nối YouTube. Vui lòng thử lại.");
-    });
-}
-
-function getYouTubeThumb(item) {
-  const thumbs = item.snippet.thumbnails;
-  return (thumbs.medium || thumbs.default || thumbs.high).url;
-}
-
-function escapeTemplateText(text) {
-  return String(text).replace(/\\/g, "\\\\").replace(/`/g, "'").replace(/\$\{/g, "$ {");
-}
-
-function searchYouTube(query, playFirst) {
+function searchYouTube(query, playFirst, options = {}) {
   query = String(query || "")
     .trim()
     .toLowerCase();
   if (!query || query.length < SEARCH_MIN_QUERY_LENGTH) return;
 
+  const requestToken = ++searchRequestToken;
+
   document.getElementById("searchHistory").style.display = "none";
+  document.getElementById("searchSuggestions").style.display = "none";
   document.getElementById("searchResults").style.display = "block";
   const list = document.getElementById("resultList");
 
@@ -3239,7 +4006,7 @@ function searchYouTube(query, playFirst) {
     return;
   }
 
-  if (!playFirst && query === lastSubmittedSearchQuery && list.innerHTML.trim() && !readYouTubeSearchCache(query)) {
+  if (!options.force && !playFirst && query === lastSubmittedSearchQuery && list.querySelector(".search-item") && !readYouTubeSearchCache(query)) {
     return;
   }
 
@@ -3248,8 +4015,9 @@ function searchYouTube(query, playFirst) {
 
   fetchYouTubeVideosWithFallback(query, SEARCH_RESULTS_COUNT)
     .then((items) => {
+      if (requestToken !== searchRequestToken) return;
       if (!items || items.length === 0) {
-        hideSearchDropdown();
+        list.innerHTML = renderSearchNoResults(query);
         return;
       }
 
@@ -3257,23 +4025,34 @@ function searchYouTube(query, playFirst) {
       const html = items
         .map((item) => {
           const vid = item.id.videoId;
-          const title = item.snippet.title;
-          const channel = item.snippet.channelTitle;
+          const title = item.snippet.title || "Bài hát";
+          const channel = item.snippet.channelTitle || "Nguồn nhạc";
           const thumbs = item.snippet.thumbnails || {};
           const thumb = (thumbs.default || thumbs.medium || thumbs.high || {}).url || `https://i.ytimg.com/vi/${vid}/mqdefault.jpg`;
-          cacheItems.push({ videoId: vid, title });
+          const safeVid = escapeInlineString(vid);
+          const safeTitle = escapeInlineString(title);
+          const displayTitle = escapeHtml(title);
+          const displayChannel = escapeHtml(channel);
+          const safeThumbAttr = escapeHtml(thumb);
+          cacheItems.push({ videoId: vid, title, artist: channel, image: thumb });
           return `
-          <div class="search-item" onclick="playYouTubeFromSearch('${vid}', \`${title.replace(/`/g, "'")}\`)">
-            <img src="${thumb}" style="border-radius:4px; width:42px; height:42px; object-fit:cover;" />
+          <div class="search-item" onclick="playYouTubeFromSearch('${safeVid}', '${safeTitle}')">
+            <img src="${safeThumbAttr}" style="border-radius:4px; width:42px; height:42px; object-fit:cover;" />
             <div class="search-item-info">
-              <div class="search-item-title">${title}</div>
-              <div class="search-item-artist">▶ YouTube · ${channel}</div>
+              <div class="search-item-title">${displayTitle}</div>
+              <div class="search-item-artist">▶ ${displayChannel}</div>
             </div>
           </div>
         `;
         })
         .join("");
-      localStorage.setItem(cacheKey, JSON.stringify({ html, items: cacheItems, time: Date.now() }));
+      writeYouTubeSearchCache(cacheKey, { html, items: cacheItems, time: Date.now() });
+      youtubePlaybackQueue = cacheItems.map((item) => ({
+        videoId: item.videoId,
+        title: item.title,
+        artist: item.artist || "Nguồn nhạc",
+        image: item.image || `https://i.ytimg.com/vi/${item.videoId}/mqdefault.jpg`,
+      }));
 
       if (playFirst && cacheItems[0]) {
         playYouTubeFromSearch(cacheItems[0].videoId, cacheItems[0].title);
@@ -3283,8 +4062,9 @@ function searchYouTube(query, playFirst) {
       list.innerHTML = html;
     })
     .catch((error) => {
+      if (requestToken !== searchRequestToken) return;
       console.warn("YouTube search failed:", error);
-      hideSearchDropdown();
+      list.innerHTML = renderSearchNoResults(query);
     });
 }
 
@@ -3299,56 +4079,164 @@ function hideSearchDropdown() {
 // PHÁT VIDEO YOUTUBE
 // ============================
 
-function playYouTube(videoId, title) {
-  const modal = document.getElementById("ytPlayerModal");
-  document.getElementById("ytModalTitle").textContent = title;
-  modal.style.display = "flex";
-  recordListeningHistory({
+function handleYouTubeStateChange(e) {
+  if (e.data === YT.PlayerState.PLAYING) {
+    if (userPausedPlayback) {
+      e.target.pauseVideo();
+      stopYouTubeProgressTimer();
+      setPlayPauseIcon(false);
+      return;
+    }
+    startYouTubeProgressTimer();
+    setPlayPauseIcon(true);
+  } else if (e.data === YT.PlayerState.PAUSED) {
+    stopYouTubeProgressTimer();
+    setPlayPauseIcon(false);
+  } else if (e.data === YT.PlayerState.BUFFERING) {
+    if (userPausedPlayback) {
+      setPlayPauseIcon(false);
+      setTimeout(() => {
+        if (userPausedPlayback && e.target && typeof e.target.pauseVideo === "function") {
+          e.target.pauseVideo();
+          setPlayPauseIcon(false);
+        }
+      }, 300);
+    }
+  } else if (e.data === YT.PlayerState.ENDED) {
+    stopYouTubeProgressTimer();
+    userPausedPlayback = false;
+    nextSong();
+  }
+}
+
+function handleYouTubePlaybackError(event) {
+  const failedId =
+    (ytPlayer && typeof ytPlayer.getVideoData === "function" && ytPlayer.getVideoData() && ytPlayer.getVideoData().video_id) ||
+    (youtubePlaybackQueue[currentYouTubeIndex] && youtubePlaybackQueue[currentYouTubeIndex].videoId) ||
+    "";
+  markUnplayableYouTubeVideo(failedId);
+  removeYouTubeVideoFromQueue(failedId);
+  stopYouTubeProgressTimer();
+  setPlayPauseIcon(false);
+  notifyPlayerAction("Bài hát này tạm thời không phát được, đã bỏ qua.");
+
+  const nextItem = youtubePlaybackQueue[currentYouTubeIndex + 1] || youtubePlaybackQueue[currentYouTubeIndex];
+  if (nextItem) {
+    currentYouTubeIndex = youtubePlaybackQueue.findIndex((item) => item.videoId === nextItem.videoId);
+    playYouTube(nextItem.videoId, nextItem.title, { artist: nextItem.artist, image: nextItem.image });
+  }
+}
+
+function bindYouTubeStateChangeHandler() {
+  if (!ytPlayer) return;
+  if (typeof ytPlayer.removeEventListener === "function") {
+    try {
+      ytPlayer.removeEventListener("onStateChange", handleYouTubeStateChange);
+      ytPlayer.removeEventListener("onError", handleYouTubePlaybackError);
+    } catch (e) {}
+  }
+  if (typeof ytPlayer.addEventListener === "function") {
+    ytPlayer.addEventListener("onStateChange", handleYouTubeStateChange);
+    ytPlayer.addEventListener("onError", handleYouTubePlaybackError);
+  }
+}
+
+function playYouTube(videoId, title, meta = {}) {
+  const artist = meta.artist || "Nguồn nhạc";
+  const image = meta.image || meta.thumb || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+  const playbackSource = meta.source || "youtube";
+
+  userPausedPlayback = false;
+  currentAudioSource = playbackSource;
+  currentAudiusIndex = -1;
+  if (playbackSource !== "chart") currentChartIndex = -1;
+  if (currentYouTubeIndex < 0 || !youtubePlaybackQueue[currentYouTubeIndex] || youtubePlaybackQueue[currentYouTubeIndex].videoId !== videoId) {
+    const queueIndex = youtubePlaybackQueue.findIndex((item) => item.videoId === videoId);
+    if (queueIndex >= 0) {
+      currentYouTubeIndex = queueIndex;
+    } else {
+      youtubePlaybackQueue = [{ videoId, title, artist, image }];
+      currentYouTubeIndex = 0;
+    }
+  }
+  const playingTrack = {
     type: "youtube",
     title,
-    artist: "YouTube",
-    image: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+    artist,
+    image,
     videoId,
-  });
+  };
+  recordListeningHistory(playingTrack);
+  setCurrentPlayingTrack(playingTrack);
+  showMiniPlayer();
 
   if (currentAudio && !currentAudio.paused) {
     currentAudio.pause();
-    setPlayPauseIcon(false);
-    updatePlayBtn();
   }
+  currentAudio = null;
+  updatePlayBtn();
 
   if (ytPlayer && ytReady) {
+    bindYouTubeStateChangeHandler();
     ytPlayer.loadVideoById(videoId);
+    ytPlayer.setVolume(parseInt(document.getElementById("volumeSlider").value || "100", 10));
+    startYouTubeProgressTimer();
+    setPlayPauseIcon(true);
   } else {
     document.getElementById("ytPlayer").innerHTML = "";
     ytPlayer = new YT.Player("ytPlayer", {
-      height: "100%",
-      width: "100%",
+      height: "0",
+      width: "0",
       videoId: videoId,
-      playerVars: { autoplay: 1, rel: 0, modestbranding: 1 },
+      playerVars: { autoplay: 1, controls: 0, rel: 0, modestbranding: 1 },
       events: {
         onReady: (e) => {
-          e.target.playVideo();
           ytReady = true;
+          e.target.setVolume(parseInt(document.getElementById("volumeSlider").value || "100", 10));
+          e.target.playVideo();
+          startYouTubeProgressTimer();
+          setPlayPauseIcon(true);
         },
+        onStateChange: handleYouTubeStateChange,
+        onError: handleYouTubePlaybackError,
       },
     });
   }
 }
 
 function closeYTPlayer() {
-  document.getElementById("ytPlayerModal").style.display = "none";
-  if (ytPlayer) {
-    ytPlayer.stopVideo();
+  stopYouTubePlayback();
+  setPlayPauseIcon(false);
+}
+
+function playYouTubeFromQueue(index) {
+  const item = youtubePlaybackQueue[index];
+  if (!item) return;
+  if (getUnplayableYouTubeIds().has(item.videoId)) {
+    removeYouTubeVideoFromQueue(item.videoId);
+    notifyPlayerAction("Bài hát này từng lỗi phát, đã bỏ qua.");
+    return;
   }
+  if (isCurrentPlaybackTrack(item)) {
+    togglePlay();
+    return;
+  }
+  currentYouTubeIndex = index;
+  playYouTube(item.videoId, item.title, { artist: item.artist, image: item.image });
 }
 
 function playYouTubeFromSearch(vid, title) {
+  if (getUnplayableYouTubeIds().has(vid)) {
+    notifyPlayerAction("Bài hát này từng lỗi phát, đã bỏ qua.");
+    return;
+  }
   addToHistory(title);
   searchInput.value = "";
   searchClear.style.display = "none";
   showSearchHistoryDropdown();
-  playYouTube(vid, title);
+  currentYouTubeIndex = youtubePlaybackQueue.findIndex((item) => item.videoId === vid);
+  const item = youtubePlaybackQueue[currentYouTubeIndex] || { videoId: vid, title, artist: "Nguồn nhạc", image: `https://i.ytimg.com/vi/${vid}/mqdefault.jpg` };
+  playYouTube(vid, title, { artist: item.artist, image: item.image });
 }
 function toggleSettings() {
   document.getElementById("settingsDropdown").classList.toggle("open");
@@ -3381,6 +4269,7 @@ const I18N = {
     navChart: "BXH Music",
     navRecent: "Bài hát gần đây",
     top100Shortcut: "Top 100",
+    searchSuggestions: "Đề xuất cho bạn",
     searchHistory: "🕐 Tìm kiếm gần đây",
     searchResults: "🎵 Kết quả",
     noHistory: "Chưa có lịch sử tìm kiếm",
@@ -3407,9 +4296,9 @@ const I18N = {
     reduceMotionDesc: "Giảm animation và hiệu ứng hover.",
     language: "Ngôn ngữ",
     languageDesc: "Chọn ngôn ngữ hiển thị cho Listen Music.",
-    aboutBody: "<p><strong>Listen Music</strong> là trình nghe nhạc cá nhân tích hợp nhạc local, YouTube, Top 100 và lịch sử nghe.</p><p>Phiên bản hiện tại tập trung vào trải nghiệm nghe nhạc nhanh, giao diện tối và tìm kiếm tiết kiệm quota.</p>",
-    termsBody: "<p>Bạn chịu trách nhiệm với nội dung mình phát, tải lên hoặc chia sẻ trong ứng dụng.</p><p>Nhạc từ YouTube được phát thông qua trình phát nhúng và tuân theo điều khoản của nền tảng nguồn.</p>",
-    privacyBody: "<p>Ứng dụng lưu lịch sử nghe, cache tìm kiếm và tùy chọn cài đặt trong trình duyệt của bạn bằng <code>localStorage</code>.</p><p>Dữ liệu này nằm trên máy của bạn và có thể xóa bằng cách xóa dữ liệu trang web trong trình duyệt.</p>",
+    aboutBody: "<p><strong>Listen Music</strong> là trình nghe nhạc cá nhân tích hợp nhạc local, Top 100 và lịch sử nghe.</p><p>Phiên bản hiện tại tập trung vào trải nghiệm nghe nhạc nhanh, giao diện tối và tìm kiếm mượt mà.</p>",
+    termsBody: "<p>Bạn chịu trách nhiệm với nội dung mình phát, tải lên hoặc chia sẻ trong ứng dụng.</p><p>Nhạc trực tuyến được phát thông qua các nguồn hợp lệ và tuân theo điều khoản của nền tảng nguồn.</p>",
+    privacyBody: "<p>Ứng dụng lưu lịch sử nghe, tìm kiếm và tùy chọn hiển thị trong trình duyệt của bạn.</p><p>Dữ liệu này nằm trên máy của bạn và có thể xóa bằng cách xóa dữ liệu trang web trong trình duyệt.</p>",
     copyrightBody: "Nếu bạn thấy nội dung cần gỡ bỏ, hãy gửi tên bài hát, nghệ sĩ, liên kết video và lý do báo cáo.",
     sendContact: "Gửi liên hệ",
     adsBody: "Listen Music chỉ hiển thị các gợi ý nội dung nội bộ và không yêu cầu đăng nhập hoặc thanh toán.",
@@ -3429,6 +4318,7 @@ const I18N = {
     navChart: "Music Chart",
     navRecent: "Recently played",
     top100Shortcut: "Top 100",
+    searchSuggestions: "Recommended for you",
     searchHistory: "🕐 Recent searches",
     searchResults: "🎵 Results",
     noHistory: "No recent searches",
@@ -3455,9 +4345,9 @@ const I18N = {
     reduceMotionDesc: "Reduce animations and hover effects.",
     language: "Language",
     languageDesc: "Choose the display language for Listen Music.",
-    aboutBody: "<p><strong>Listen Music</strong> is a personal music player with local music, YouTube, Top 100, and listening history.</p><p>This version focuses on fast playback, a dark interface, and quota-friendly search.</p>",
-    termsBody: "<p>You are responsible for the content you play, upload, or share in the app.</p><p>YouTube music is played through the embedded player and follows the source platform's terms.</p>",
-    privacyBody: "<p>The app stores listening history, search cache, and preferences in your browser using <code>localStorage</code>.</p><p>This data stays on your device and can be removed by clearing site data in your browser.</p>",
+    aboutBody: "<p><strong>Listen Music</strong> is a personal music player with local music, Top 100, and listening history.</p><p>This version focuses on fast playback, a dark interface, and smooth search.</p>",
+    termsBody: "<p>You are responsible for the content you play, upload, or share in the app.</p><p>Online music is played through valid sources and follows the source platform's terms.</p>",
+    privacyBody: "<p>The app stores listening history, search data, and display preferences in your browser.</p><p>This data stays on your device and can be removed by clearing site data in your browser.</p>",
     copyrightBody: "If you find content that should be removed, send the song name, artist, video link, and report reason.",
     sendContact: "Send message",
     adsBody: "Listen Music only shows internal content suggestions and does not ask for sign-in or payment.",
@@ -3581,7 +4471,8 @@ function applyLanguageText() {
     sidebarPlaylists[1].append(" " + t("navRecent"));
   }
   setText(".top100-shortcut-btn", t("top100Shortcut"));
-  setText("#searchHistory .search-section-title", t("searchHistory"));
+  setText("#searchSuggestions .search-section-title", t("searchSuggestions"));
+  setText("#searchHistory .search-section-title span", t("searchHistory"));
   setText("#searchResults .search-section-title", t("searchResults"));
   setText(".settings-panel-kicker", t("settingsKicker"));
 
@@ -3682,46 +4573,128 @@ document.addEventListener("keydown", function (e) {
 // ============================
 // TOP 100 PAGE
 // ============================
-function openTop100(name, query) {
+function setTop100RefreshVisible(visible) {
+  const btn = document.getElementById("top100RefreshBtn");
+  if (btn) btn.style.display = visible ? "inline-flex" : "none";
+}
+
+function getTop100CacheKey(query) {
+  return (
+    "db_top100_music_v2_" +
+    String(query || "")
+      .toLowerCase()
+      .trim()
+  );
+}
+
+function getTop100SeenKey(query) {
+  return getTop100CacheKey(query) + "_seen";
+}
+
+function getTop100RefreshQueries(query, refreshCount) {
+  const year = new Date().getFullYear();
+  const variants = [query, `${query} official music video`, `${query} hit mới nhất`, `${query} trending ${year}`, `${query} hay nhất ${year}`, `${query} audio lyrics`, `${query} playlist tuyển chọn`, `${query} live performance`, `${query} mv mới`];
+  if (!refreshCount) return [query];
+
+  const start = refreshCount % variants.length;
+  return [variants[start], variants[(start + 3) % variants.length], variants[(start + 6) % variants.length]];
+}
+
+function readTop100SeenIds(query) {
+  try {
+    return JSON.parse(localStorage.getItem(getTop100SeenKey(query)) || "[]");
+  } catch (e) {
+    localStorage.removeItem(getTop100SeenKey(query));
+    return [];
+  }
+}
+
+function rememberTop100SeenIds(query, items) {
+  const seen = new Set(readTop100SeenIds(query));
+  (items || []).forEach((item) => {
+    const videoId = item && item.id && item.id.videoId;
+    if (videoId) seen.add(videoId);
+  });
+  localStorage.setItem(getTop100SeenKey(query), JSON.stringify(Array.from(seen).slice(-500)));
+}
+
+function getItemVideoId(item) {
+  return item && item.id && item.id.videoId ? item.id.videoId : "";
+}
+
+function clearTop100MusicCaches() {
+  Object.keys(localStorage)
+    .filter((key) => key.indexOf("db_top100_music_v1_") === 0 || key.indexOf("db_top100_music_v2_") === 0)
+    .forEach((key) => localStorage.removeItem(key));
+}
+
+function fetchTop100Items(query, refreshCount) {
+  return Promise.resolve([]);
+}
+
+function openTop100(name, query, options) {
+  const forceRefresh = !!(options && options.forceRefresh);
+  const refreshCount = options && options.refreshCount ? options.refreshCount : 0;
   showPage("youtubePage");
   document.getElementById("youtubePageTitle").textContent = "🏆 Top 100 - " + name;
+  setTop100RefreshVisible(true);
+  currentTop100State = { name, query, refreshCount };
+  youtubePlaybackQueue = [];
+  currentYouTubeIndex = -1;
+  currentChartIndex = -1;
+  currentPlayingTrack = null;
+  stopYouTubePlayback();
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+  setPlayPauseIcon(false);
+  const playerBar = document.querySelector(".player-bar");
+  if (playerBar) playerBar.classList.remove("active");
+  const list = document.getElementById("youtubeList");
+  const top100Query = getTop100RefreshQueries(query, refreshCount).join(" ");
+  const cacheKey = getTop100CacheKey(name + "_" + top100Query);
 
-  const cacheKey = "yt_top100_v3_" + query.toLowerCase().trim();
-  const cached = localStorage.getItem(cacheKey);
-  if (cached) {
-    try {
-      const { html, time } = JSON.parse(cached);
-      if (Date.now() - time < CACHE_7_DAYS) {
-        document.getElementById("youtubeList").innerHTML = html;
-        return;
-      }
-    } catch (e) {}
-    localStorage.removeItem(cacheKey);
+  if (!forceRefresh) {
+    const cached = readTimedCache(cacheKey, CACHE_7_DAYS);
+    if (cached && cached.html) {
+      youtubePlaybackQueue = cached.queue || [];
+      list.innerHTML = cached.html;
+      hydrateYouTubeListItems(list);
+      return;
+    }
   }
 
-  document.getElementById("youtubeList").innerHTML = "";
+  list.innerHTML = '<div class="yt-loading">Đang tải Top 100...</div>';
 
-  fetchYouTubeVideosWithFallback(query, TOP100_RESULTS_COUNT)
+  fetchMusicDatabaseVideos(top100Query, 100)
     .then((items) => {
-      if (!items || items.length === 0) {
-        document.getElementById("youtubeList").innerHTML = '<div class="yt-loading">Không tìm thấy kết quả.</div>';
+      if (!items || !items.length) {
+        list.innerHTML = '<div class="yt-loading">Chưa có bài hát phù hợp cho mục này.</div>';
         return;
       }
 
       const html = renderYouTubeList(items);
-      localStorage.setItem(cacheKey, JSON.stringify({ html, time: Date.now() }));
+      writeTimedCache(cacheKey, { html, queue: youtubePlaybackQueue });
     })
     .catch((error) => {
-      console.error("Top 100 fetch error:", error);
-      document.getElementById("youtubeList").innerHTML = `
+      console.error("Top 100 database load error:", error);
+      list.innerHTML = `
         <div class="t100-error-box">
-          <div class="t100-error-icon">❌</div>
-          <div class="t100-error-title">Không tải được Top 100 từ YouTube</div>
-          <div class="t100-error-body">
-            ${error && error.message ? error.message : "Vui lòng kiểm tra kết nối mạng hoặc YouTube API key."}
-          </div>
-          <button class="t100-retry-btn" onclick="openTop100('${name.replace(/'/g, "\\'")}', '${query.replace(/'/g, "\\'")}')">Thử lại</button>
+          <div class="t100-error-icon">!</div>
+          <div class="t100-error-title">Nội dung chưa sẵn sàng</div>
+          <div class="t100-error-body">Danh sách nhạc đang tạm thời chưa hiển thị. Vui lòng thử lại sau.</div>
+          <button class="t100-retry-btn" onclick="refreshCurrentTop100()">Thử lại</button>
         </div>
       `;
     });
+}
+
+function refreshCurrentTop100() {
+  if (!currentTop100State) return;
+  const nextRefreshCount = (currentTop100State.refreshCount || 0) + 1;
+  openTop100(currentTop100State.name, currentTop100State.query, {
+    forceRefresh: true,
+    refreshCount: nextRefreshCount,
+  });
 }
