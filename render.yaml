@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: listen-music
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.1
+      - key: YOUTUBE_API_KEYS
+        sync: false
+      - key: YOUTUBE_API_REFERER
+        sync: false

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>Play Music</title>
-    <link rel="stylesheet" href="styles.css?v=20260607-search4" />
+    <link rel="stylesheet" href="styles.css?v=20260608-search-icon" />
     <meta name="google-site-verification" content="B46LiR-VLtgSdNuk_Z_f1bzVzoqX1fS7iI0wzL6CMeg" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -433,8 +433,9 @@
       <div class="header-nav"></div>
       <div class="header-search" id="searchWrapper">
         <button class="search-icon-btn" type="button" aria-label="Tìm kiếm" onclick="submitHeaderSearch()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="search-icon" viewBox="0 0 16 16">
-            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+          <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-4.35-4.35"></path>
           </svg>
         </button>
         <input type="text" id="searchInput" placeholder="Tìm kiếm bài hát, nghệ sĩ..." autocomplete="off" />
@@ -786,11 +787,14 @@
           <div class="artist-layout">
             <section class="artist-panel artist-ranking-panel">
               <div class="artist-panel-head">
-                <h2>Top những ca sĩ nổi bật trong năm 2026</h2>
+                <h2>Top những ca sĩ nổi bật trong năm</h2>
               </div>
               <div class="artist-toolbar">
                 <div class="artist-search-box">
-                  <span>⌕</span>
+                  <svg class="artist-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m20 20-4.35-4.35"></path>
+                  </svg>
                   <input id="artistSearchInput" type="text" placeholder="Tìm kiếm nghệ sĩ..." oninput="filterArtists()" />
                 </div>
                 <div class="artist-genre-tabs">
@@ -1428,6 +1432,6 @@
       </div>
     </div>
     <script type="module" src="firebase-auth.js?v=20260607-search4"></script>
-    <script src="index.js?v=20260607-artistphotos1"></script>
+    <script src="index.js?v=20260607-artistphotos2"></script>
   </body>
 </html>

@@ -3456,76 +3456,6 @@
           "youtubeUrl": "https://www.youtube.com/watch?v=0DpHE1mh_1s"
         },
         {
-          "videoId": "as1-HoFqz_k",
-          "title": "Chỉ Riêng Mình Ta",
-          "channelTitle": "Nguyen Hung - Topic",
-          "durationSeconds": 287,
-          "youtubeUrl": "https://www.youtube.com/watch?v=as1-HoFqz_k"
-        },
-        {
-          "videoId": "8lqkI4GUoSc",
-          "title": "Hãy Cho Tôi",
-          "channelTitle": "Nguyen Hung - Topic",
-          "durationSeconds": 233,
-          "youtubeUrl": "https://www.youtube.com/watch?v=8lqkI4GUoSc"
-        },
-        {
-          "videoId": "iZUhWKjkGgY",
-          "title": "Chiếc Lá Mùa Đông",
-          "channelTitle": "Nguyen Hung - Topic",
-          "durationSeconds": 265,
-          "youtubeUrl": "https://www.youtube.com/watch?v=iZUhWKjkGgY"
-        },
-        {
-          "videoId": "_mYfy-ecchk",
-          "title": "Khổ Vì Yêu Nàng",
-          "channelTitle": "Nguyen Hung - Topic",
-          "durationSeconds": 228,
-          "youtubeUrl": "https://www.youtube.com/watch?v=_mYfy-ecchk"
-        },
-        {
-          "videoId": "_44L-EE0a1I",
-          "title": "Hương",
-          "channelTitle": "Nguyen Hung - Topic",
-          "durationSeconds": 258,
-          "youtubeUrl": "https://www.youtube.com/watch?v=_44L-EE0a1I"
-        },
-        {
-          "videoId": "oQxlFskHdug",
-          "title": "LK Điên & Say",
-          "channelTitle": "Nguyen Hung - Topic",
-          "durationSeconds": 313,
-          "youtubeUrl": "https://www.youtube.com/watch?v=oQxlFskHdug"
-        },
-        {
-          "videoId": "YQxedyCi0ZY",
-          "title": "Mưa Bong Bóng",
-          "channelTitle": "Nguyen Hung - Topic",
-          "durationSeconds": 332,
-          "youtubeUrl": "https://www.youtube.com/watch?v=YQxedyCi0ZY"
-        },
-        {
-          "videoId": "nfk9MGg39Z0",
-          "title": "Ngày Em Đi",
-          "channelTitle": "Nguyen Hung - Topic",
-          "durationSeconds": 348,
-          "youtubeUrl": "https://www.youtube.com/watch?v=nfk9MGg39Z0"
-        },
-        {
-          "videoId": "qHYzG2WchIM",
-          "title": "Hãy Cho Tôi - Nguyễn Hưng | Bản Nhạc Càng Nghe Càng Yêu Đời | Tết Vạn Lộc 2024",
-          "channelTitle": "NỤ CƯỜI VÀNG TV",
-          "durationSeconds": 233,
-          "youtubeUrl": "https://www.youtube.com/watch?v=qHYzG2WchIM"
-        },
-        {
-          "videoId": "85UM1yw29j4",
-          "title": "Nguyễn Hưng - Khổ Vì Yêu Nàng (Tùng Châu, Lê Hựu Hà) PBN 52",
-          "channelTitle": "Thuy Nga",
-          "durationSeconds": 233,
-          "youtubeUrl": "https://www.youtube.com/watch?v=85UM1yw29j4"
-        },
-        {
           "videoId": "tE0Zw7M40w4",
           "title": "Còn Gì Đẹp Hơn - Bùi Công Nam & Nguyễn Hùng (MAYDAYs) | Concert Tôi Yêu Tổ Quốc Tôi",
           "channelTitle": "Q Show - ZZTV",
@@ -3559,13 +3489,6 @@
           "channelTitle": "Q Show - ZZTV",
           "durationSeconds": 353,
           "youtubeUrl": "https://www.youtube.com/watch?v=Ptc7rTVveTw"
-        },
-        {
-          "videoId": "EB4DUJ0wYd0",
-          "title": "Còn gì đẹp hơn - NSƯT Vũ Thắng Lợi | ST: Nguyễn Hùng || Chương trình nghệ thuật Ánh Dương",
-          "channelTitle": "Vũ Thắng Lợi Official (Phúc Hưng)",
-          "durationSeconds": 240,
-          "youtubeUrl": "https://www.youtube.com/watch?v=EB4DUJ0wYd0"
         },
         {
           "videoId": "NkmbzdtvptA",
@@ -4418,9 +4341,9 @@
     },
     {
       "name": "Hiền Hồ",
-      "photo": "https://cdn-images.dzcdn.net/images/artist/745e3279e3aa0b2bbe80f933a7a40339/1000x1000-000000-80-0-0.jpg",
+      "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/HIEN_HO_-_7UP_VIETNAM_2020_-_2020.06.11.jpg/960px-HIEN_HO_-_7UP_VIETNAM_2020_-_2020.06.11.jpg",
       "photoVerified": true,
-      "photoSource": "deezer:exact-name",
+      "photoSource": "wikipedia:Hiền Hồ",
       "videos": [
         {
           "videoId": "XV9zTJLbmFw",
@@ -4438,219 +4361,6 @@
         }
       ],
       "youtubeLastCheckedAt": "2026-06-04T16:19:58.212Z",
-      "youtubeSource": "YouTube Data API v3"
-    },
-    {
-      "name": "Monstar",
-      "photo": "https://yt3.ggpht.com/W92f4gfzSlU6E95TsfsuZnaP-_0JUuqVq3R9Yetqib5rLlQ9Bjwy9KDDNzqvattpKh97mht9eMU=s800-c-k-c0x00ffffff-no-rj",
-      "photoVerified": true,
-      "photoSource": "youtube:MONSTAR - Topic",
-      "videos": [
-        {
-          "videoId": "vpRi8S6uXAg",
-          "title": "có hẹn với thanh xuân - MONSTAR | official music video",
-          "channelTitle": "ST.319 Entertainment",
-          "durationSeconds": 269,
-          "youtubeUrl": "https://www.youtube.com/watch?v=vpRi8S6uXAg"
-        },
-        {
-          "videoId": "hZ59UkLjeA0",
-          "title": "MONSTAR - #BABYBABY | Official Music Video",
-          "channelTitle": "ST.319 Entertainment",
-          "durationSeconds": 261,
-          "youtubeUrl": "https://www.youtube.com/watch?v=hZ59UkLjeA0"
-        },
-        {
-          "videoId": "NJp5Fz3mTu0",
-          "title": "MONSTAR - TÌNH YÊU CHẬM TRỄ | Official Music Video",
-          "channelTitle": "ST.319 Entertainment",
-          "durationSeconds": 288,
-          "youtubeUrl": "https://www.youtube.com/watch?v=NJp5Fz3mTu0"
-        },
-        {
-          "videoId": "BYgzu_r_RmE",
-          "title": "MONSTAR - GIỮ LẤY LÀM GÌ | Official Music Video",
-          "channelTitle": "ST.319 Entertainment",
-          "durationSeconds": 230,
-          "youtubeUrl": "https://www.youtube.com/watch?v=BYgzu_r_RmE"
-        },
-        {
-          "videoId": "6-wkFxcUYeA",
-          "title": "MONSTAR - NẾU MAI CHIA TAY (ft. AMEE) | Official Music Video",
-          "channelTitle": "ST.319 Entertainment",
-          "durationSeconds": 262,
-          "youtubeUrl": "https://www.youtube.com/watch?v=6-wkFxcUYeA"
-        },
-        {
-          "videoId": "Jg4ZeCynSmE",
-          "title": "MONSTAR - BABY I TOLD U | Official Music Video",
-          "channelTitle": "ST.319 Entertainment",
-          "durationSeconds": 318,
-          "youtubeUrl": "https://www.youtube.com/watch?v=Jg4ZeCynSmE"
-        },
-        {
-          "videoId": "EQGL2rfqc1k",
-          "title": "MONSTAR - HEY GIRL | Official Music Video",
-          "channelTitle": "ST.319 Entertainment",
-          "durationSeconds": 199,
-          "youtubeUrl": "https://www.youtube.com/watch?v=EQGL2rfqc1k"
-        },
-        {
-          "videoId": "QAkR2CQORks",
-          "title": "SELFIE MY XMAS | Suni Hạ Linh, MONSTAR, Đoàn Thế Lân SMS | Official MV | Nhạc trẻ hay mới nhất",
-          "channelTitle": "YEAH1 MUSIC",
-          "durationSeconds": 292,
-          "youtubeUrl": "https://www.youtube.com/watch?v=QAkR2CQORks"
-        },
-        {
-          "videoId": "-_8wCdFQfJ4",
-          "title": "KAI ĐINH x MONSTAR x SUNI HẠ LINH - CHỈ CẦN LÀ MÌNH CÙNG NHAU (HERE WE GO) | Official Music Video",
-          "channelTitle": "ST.319 Entertainment",
-          "durationSeconds": 279,
-          "youtubeUrl": "https://www.youtube.com/watch?v=-_8wCdFQfJ4"
-        },
-        {
-          "videoId": "ODVKinrzOKc",
-          "title": "MONSTAR from ST 319   '#BABYBABY' M V Official",
-          "channelTitle": "Trà My",
-          "durationSeconds": 261,
-          "youtubeUrl": "https://www.youtube.com/watch?v=ODVKinrzOKc"
-        },
-        {
-          "videoId": "QXWAReyqf98",
-          "title": "tình yêu chậm trễ",
-          "channelTitle": "MONSTAR - Topic",
-          "durationSeconds": 246,
-          "youtubeUrl": "https://www.youtube.com/watch?v=QXWAReyqf98"
-        },
-        {
-          "videoId": "HXzRlUL1cF0",
-          "title": "có hẹn với thanh xuân",
-          "channelTitle": "MONSTAR - Topic",
-          "durationSeconds": 219,
-          "youtubeUrl": "https://www.youtube.com/watch?v=HXzRlUL1cF0"
-        },
-        {
-          "videoId": "WFdaJtUf67k",
-          "title": "giữ lấy làm gì",
-          "channelTitle": "MONSTAR - Topic",
-          "durationSeconds": 201,
-          "youtubeUrl": "https://www.youtube.com/watch?v=WFdaJtUf67k"
-        },
-        {
-          "videoId": "02vBBDsUpW4",
-          "title": "nếu mai chia tay (feat. AMEE)",
-          "channelTitle": "MONSTAR - Topic",
-          "durationSeconds": 206,
-          "youtubeUrl": "https://www.youtube.com/watch?v=02vBBDsUpW4"
-        },
-        {
-          "videoId": "DDAx3GSapj8",
-          "title": "baby i told u",
-          "channelTitle": "MONSTAR - Topic",
-          "durationSeconds": 255,
-          "youtubeUrl": "https://www.youtube.com/watch?v=DDAx3GSapj8"
-        },
-        {
-          "videoId": "omCo_ceVJUI",
-          "title": "Badadu",
-          "channelTitle": "MONSTAR - Topic",
-          "durationSeconds": 202,
-          "youtubeUrl": "https://www.youtube.com/watch?v=omCo_ceVJUI"
-        },
-        {
-          "videoId": "zyMef8Rot3M",
-          "title": "Và Tôi Hát",
-          "channelTitle": "MONSTAR - Topic",
-          "durationSeconds": 192,
-          "youtubeUrl": "https://www.youtube.com/watch?v=zyMef8Rot3M"
-        },
-        {
-          "videoId": "G4yDg3PM1Og",
-          "title": "over the moon (intro)",
-          "channelTitle": "MONSTAR - Topic",
-          "durationSeconds": 83,
-          "youtubeUrl": "https://www.youtube.com/watch?v=G4yDg3PM1Og"
-        },
-        {
-          "videoId": "-JY8nY4ahcQ",
-          "title": "to the moon and back (outro)",
-          "channelTitle": "MONSTAR - Topic",
-          "durationSeconds": 90,
-          "youtubeUrl": "https://www.youtube.com/watch?v=-JY8nY4ahcQ"
-        },
-        {
-          "videoId": "_Riey-yZqOI",
-          "title": "Monstar",
-          "channelTitle": "USHER - Topic",
-          "durationSeconds": 302,
-          "youtubeUrl": "https://www.youtube.com/watch?v=_Riey-yZqOI"
-        },
-        {
-          "videoId": "0JI488RLqJw",
-          "title": "JO1｜'MONSTAR' PERFORMANCE VIDEO",
-          "channelTitle": "JO1",
-          "durationSeconds": 214,
-          "youtubeUrl": "https://www.youtube.com/watch?v=0JI488RLqJw"
-        },
-        {
-          "videoId": "9lq16-EmC8Y",
-          "title": "MONSTAR - #BABYBABY | Dance Practice",
-          "channelTitle": "ST.319 Entertainment",
-          "durationSeconds": 245,
-          "youtubeUrl": "https://www.youtube.com/watch?v=9lq16-EmC8Y"
-        },
-        {
-          "videoId": "9uYthslGcZY",
-          "title": "có hẹn với thanh xuân - MONSTAR | live at Yeah1 #HomeFest show",
-          "channelTitle": "ST.319 Entertainment",
-          "durationSeconds": 218,
-          "youtubeUrl": "https://www.youtube.com/watch?v=9uYthslGcZY"
-        },
-        {
-          "videoId": "29d0LeEb0FE",
-          "title": "Anh Mang Theo Mùa Xuân - Văn Mai Hương & MONSTAR | Gala Nhạc Việt 9",
-          "channelTitle": "Gala Nhạc Việt",
-          "durationSeconds": 285,
-          "youtubeUrl": "https://www.youtube.com/watch?v=29d0LeEb0FE"
-        },
-        {
-          "videoId": "qs860m9Rn0Y",
-          "title": "có hẹn với thanh xuân - MONSTAR | teaser audio",
-          "channelTitle": "ST.319 Entertainment",
-          "durationSeconds": 292,
-          "youtubeUrl": "https://www.youtube.com/watch?v=qs860m9Rn0Y"
-        },
-        {
-          "videoId": "xoXFTlmJ3lM",
-          "title": "Monstar - VÀ TÔI HÁT | Line distribution",
-          "channelTitle": "K-Vpop Discover",
-          "durationSeconds": 201,
-          "youtubeUrl": "https://www.youtube.com/watch?v=xoXFTlmJ3lM"
-        },
-        {
-          "videoId": "inNs9eSG_fg",
-          "title": "[Monstar OST] | The Swamp - Kim Nana.",
-          "channelTitle": "Max Muzik",
-          "durationSeconds": 311,
-          "youtubeUrl": "https://www.youtube.com/watch?v=inNs9eSG_fg"
-        },
-        {
-          "videoId": "5aLjWj0XHFo",
-          "title": "Monstar Chuyền Giấy Bằng Miệng Cực Tình - Saturday Radio | KingLive",
-          "channelTitle": "KINGLIVE",
-          "durationSeconds": 351,
-          "youtubeUrl": "https://www.youtube.com/watch?v=5aLjWj0XHFo"
-        },
-        {
-          "videoId": "lghRq9Xzvf8",
-          "title": "MONSTAR tung hit đặc biệt tặng giáng sinh  | Kinglive",
-          "channelTitle": "KINGLIVE",
-          "durationSeconds": 144,
-          "youtubeUrl": "https://www.youtube.com/watch?v=lghRq9Xzvf8"
-        }
-      ],
-      "youtubeLastCheckedAt": "2026-06-04T16:20:00.299Z",
       "youtubeSource": "YouTube Data API v3"
     },
     {
@@ -5559,9 +5269,9 @@
     },
     {
       "name": "Only C",
-      "photo": "https://yt3.ggpht.com/ytc/AIdro_n8A0duxT5fMzaKvGZ12qPDB5H0ak_c3n35DRmAtAz1Sy0=s800-c-k-c0x00ffffff-no-rj",
+      "photo": "https://nguoinoitieng.tv/images/nnt/0/0/p0.jpg",
       "photoVerified": true,
-      "photoSource": "youtube:Only C - Topic",
+      "photoSource": "nguoinoitieng:Onlyc",
       "videos": [
         {
           "videoId": "-nnWBhKZeg0",
@@ -6058,9 +5768,9 @@
     },
     {
       "name": "Khởi My",
-      "photo": "https://yt3.ggpht.com/ytc/AIdro_nIDGPc1LingiHzriVXonR4aCmUtXJh09DfI_--LdYbpCQ=s800-c-k-c0x00ffffff-no-rj",
+      "photo": "assets/artists/khoi-my.jpg",
       "photoVerified": true,
-      "photoSource": "youtube:Khởi My - Kelvin Khánh Official",
+      "photoSource": "local:nguoinoitieng:Khoi My",
       "videos": [
         {
           "videoId": "bLARfWtu0aQ",
@@ -6811,9 +6521,9 @@
     },
     {
       "name": "Bùi Trường Linh",
-      "photo": "https://cdn-images.dzcdn.net/images/artist//1000x1000-000000-80-0-0.jpg",
+      "photo": "https://upload.wikimedia.org/wikipedia/commons/3/38/B%C3%99I_TR%C6%AF%E1%BB%9CNG_LINH_1.jpg",
       "photoVerified": true,
-      "photoSource": "deezer:exact-name",
+      "photoSource": "wikimedia-commons:BÙI TRƯỜNG LINH 1.jpg",
       "videos": [
         {
           "videoId": "69ZDBWoj5YM",
@@ -8044,156 +7754,6 @@
         }
       ],
       "youtubeLastCheckedAt": "2026-06-07T09:04:41.935Z",
-      "youtubeSource": "YouTube Data API v3"
-    },
-    {
-      "name": "Lam Trường",
-      "photo": "https://yt3.ggpht.com/Q3ewoUZ0Ms8EJcJ3yrZqsIJCmy7kx4yz7lY0nT0_e6DDdztg9sAh6T2LsZKNafMnIc-jN36CRQ=s800-c-k-c0x00ffffff-no-rj",
-      "photoVerified": true,
-      "photoSource": "youtube:Lam Truong's Official Channel",
-      "videos": [
-        {
-          "videoId": "Q0XEW2cieNM",
-          "title": "TÌNH THÔI XÓT XA - Lam Trường | Official Music Video",
-          "channelTitle": "RANG DONG Shows",
-          "durationSeconds": 323,
-          "youtubeUrl": "https://www.youtube.com/watch?v=Q0XEW2cieNM"
-        },
-        {
-          "videoId": "5sRJnJdR9nI",
-          "title": "Nơi Ấy Bình Yên - Lam Trường | Official Music Video",
-          "channelTitle": "RANG DONG Shows",
-          "durationSeconds": 299,
-          "youtubeUrl": "https://www.youtube.com/watch?v=5sRJnJdR9nI"
-        },
-        {
-          "videoId": "Tx7n8_K2REM",
-          "title": "[MV] Con đường tình yêu - Lam Trường",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 599,
-          "youtubeUrl": "https://www.youtube.com/watch?v=Tx7n8_K2REM"
-        },
-        {
-          "videoId": "CBpyz1R2ah4",
-          "title": "Lãng quên chiều thu II [Lam Trường 9PM LIVE]",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 316,
-          "youtubeUrl": "https://www.youtube.com/watch?v=CBpyz1R2ah4"
-        },
-        {
-          "videoId": "_YOdfvQlPWE",
-          "title": "Mưa phi trường - Chợt thấy em khóc ft. Noo Phước Thịnh [ Lam Trường 9PM Live]",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 328,
-          "youtubeUrl": "https://www.youtube.com/watch?v=_YOdfvQlPWE"
-        },
-        {
-          "videoId": "3vXTeiuv070",
-          "title": "Tình yêu tôi hát ft. Hồng Nhung II [Lam Trường 9PM Live]",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 398,
-          "youtubeUrl": "https://www.youtube.com/watch?v=3vXTeiuv070"
-        },
-        {
-          "videoId": "Tu9E4fa_a10",
-          "title": "Chỉ còn mình anh II [Lam Trường 9PM Live]",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 268,
-          "youtubeUrl": "https://www.youtube.com/watch?v=Tu9E4fa_a10"
-        },
-        {
-          "videoId": "4nqjd9CKmvk",
-          "title": "P4 Lãng quên chiều thu Lam Trường",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 395,
-          "youtubeUrl": "https://www.youtube.com/watch?v=4nqjd9CKmvk"
-        },
-        {
-          "videoId": "ybwmWhKMCfA",
-          "title": "[Fancam] P3 (full) Sau tất cả - Lam Trường",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 293,
-          "youtubeUrl": "https://www.youtube.com/watch?v=ybwmWhKMCfA"
-        },
-        {
-          "videoId": "412dtrSmNzU",
-          "title": "P6 Đêm nay anh mơ về em Lam Trường",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 314,
-          "youtubeUrl": "https://www.youtube.com/watch?v=412dtrSmNzU"
-        },
-        {
-          "videoId": "jvxy-YNXU7s",
-          "title": "Nơi ấy bình yên - Lam Trường",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 328,
-          "youtubeUrl": "https://www.youtube.com/watch?v=jvxy-YNXU7s"
-        },
-        {
-          "videoId": "OZWgczanNCQ",
-          "title": "Nỗi nhớ dịu êm - Lam Trường [Lam Trường Acoustic]",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 301,
-          "youtubeUrl": "https://www.youtube.com/watch?v=OZWgczanNCQ"
-        },
-        {
-          "videoId": "AY8zN9S8pJQ",
-          "title": "Tình là nhớ - Lam Trường",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 284,
-          "youtubeUrl": "https://www.youtube.com/watch?v=AY8zN9S8pJQ"
-        },
-        {
-          "videoId": "WAx8pEXhRyI",
-          "title": "[MV] Tình Em Mùa Xuân - Lam Trường (VCD Upscale 1080p)",
-          "channelTitle": "Bicon Studio 2",
-          "durationSeconds": 309,
-          "youtubeUrl": "https://www.youtube.com/watch?v=WAx8pEXhRyI"
-        },
-        {
-          "videoId": "aaWXWUyCw6E",
-          "title": "[MV] Nếu Em Thấy Cô Đơn - Lam Trường (VCD Upscale 1080p)",
-          "channelTitle": "Bicon Studio 2",
-          "durationSeconds": 305,
-          "youtubeUrl": "https://www.youtube.com/watch?v=aaWXWUyCw6E"
-        },
-        {
-          "videoId": "cN5n2I7mVKk",
-          "title": "Tôi Ngàn Năm đợi II [Lam Trường 9PM Live]",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 428,
-          "youtubeUrl": "https://www.youtube.com/watch?v=cN5n2I7mVKk"
-        },
-        {
-          "videoId": "8DDuV7H2zN0",
-          "title": "Phút bối rối - Lam Trường",
-          "channelTitle": "Lam Truong's Official Channel",
-          "durationSeconds": 474,
-          "youtubeUrl": "https://www.youtube.com/watch?v=8DDuV7H2zN0"
-        },
-        {
-          "videoId": "5hnT90iuUko",
-          "title": "LÃNG QUÊN CHIỀU THU - LAM TRƯỜNG live at #Lululola",
-          "channelTitle": "Lululola Show",
-          "durationSeconds": 260,
-          "youtubeUrl": "https://www.youtube.com/watch?v=5hnT90iuUko"
-        },
-        {
-          "videoId": "fPgAKkz9FC4",
-          "title": "Lam Trường - Katy Katy",
-          "channelTitle": "Thành Trương Công",
-          "durationSeconds": 223,
-          "youtubeUrl": "https://www.youtube.com/watch?v=fPgAKkz9FC4"
-        },
-        {
-          "videoId": "cu24COn7wfQ",
-          "title": "GÓT HỒNG - LAM TRƯỜNG",
-          "channelTitle": "Phuong Nam Phim",
-          "durationSeconds": 287,
-          "youtubeUrl": "https://www.youtube.com/watch?v=cu24COn7wfQ"
-        }
-      ],
-      "youtubeLastCheckedAt": "2026-06-07T09:03:17.189Z",
       "youtubeSource": "YouTube Data API v3"
     },
     {
@@ -10943,300 +10503,103 @@
       "youtubeSource": "YouTube Data API v3"
     },
     {
-      "name": "Ricky Montgomery",
+      "name": "Will",
       "aliases": [
-        "Ricky"
+        "Will",
+        "Will 365",
+        "Nguyen Anh Tuan"
       ],
-      "photo": "https://yt3.ggpht.com/EpoHgYHc6BDqPzX3L23M3rctqc0ZiBeRbz56hTsQqDKOgiEY42LGa9pIij1Xl9tChIi8FULV=s800-c-k-c0x00ffffff-no-rj",
+      "photo": "assets/artists/will-365.png",
       "photoVerified": true,
-      "photoSource": "youtube:Ricky Montgomery",
+      "photoSource": "local:vpop-wiki:Will",
       "videos": [
         {
-          "videoId": "vfnAYipqj1k",
-          "title": "Ricky Montgomery - Line Without a Hook (Official Music Video)",
-          "channelTitle": "Ricky Montgomery",
-          "durationSeconds": 274,
-          "youtubeUrl": "https://www.youtube.com/watch?v=vfnAYipqj1k"
-        },
-        {
-          "videoId": "DPn1jwz3Wqk",
-          "title": "Ricky Montgomery - Mr Loverman (Official Music Video)",
-          "channelTitle": "Ricky Montgomery",
-          "durationSeconds": 266,
-          "youtubeUrl": "https://www.youtube.com/watch?v=DPn1jwz3Wqk"
-        },
-        {
-          "videoId": "lBztnahrOFw",
-          "title": "Ricky Martin - La Mordidita (Official Video) ft. Yotuel",
-          "channelTitle": "RickyMartinVEVO",
-          "durationSeconds": 223,
-          "youtubeUrl": "https://www.youtube.com/watch?v=lBztnahrOFw"
-        },
-        {
-          "videoId": "iOe6dI2JhgU",
-          "title": "Ricky Martin - Vente Pa' Ca (Official Video) ft. Maluma",
-          "channelTitle": "RickyMartinVEVO",
-          "durationSeconds": 289,
-          "youtubeUrl": "https://www.youtube.com/watch?v=iOe6dI2JhgU"
-        },
-        {
-          "videoId": "p47fEXGabaY",
-          "title": "Ricky Martin - Livin' La Vida Loca (Official Video)",
-          "channelTitle": "RickyMartinVEVO",
-          "durationSeconds": 223,
-          "youtubeUrl": "https://www.youtube.com/watch?v=p47fEXGabaY"
-        },
-        {
-          "videoId": "vCEvCXuglqo",
-          "title": "Ricky Martin - María (Official Video)",
-          "channelTitle": "RickyMartinVEVO",
-          "durationSeconds": 248,
-          "youtubeUrl": "https://www.youtube.com/watch?v=vCEvCXuglqo"
-        },
-        {
-          "videoId": "JluQoTEg2gU",
-          "title": "Ricky Martin - Adiós (Spanish/French) (Official Video)",
-          "channelTitle": "RickyMartinVEVO",
-          "durationSeconds": 250,
-          "youtubeUrl": "https://www.youtube.com/watch?v=JluQoTEg2gU"
-        },
-        {
-          "videoId": "QSb703_joWE",
-          "title": "Ricky Martin - Tal Vez (Official Video)",
-          "channelTitle": "RickyMartinVEVO",
-          "durationSeconds": 286,
-          "youtubeUrl": "https://www.youtube.com/watch?v=QSb703_joWE"
-        },
-        {
-          "videoId": "8BkYKwHLXiU",
-          "title": "Ricky Martin - La Copa de la Vida (Official Video - Spanglish)",
-          "channelTitle": "RickyMartinVEVO",
-          "durationSeconds": 247,
-          "youtubeUrl": "https://www.youtube.com/watch?v=8BkYKwHLXiU"
-        },
-        {
-          "videoId": "KUmrNavXsd0",
-          "title": "Ricky Martin - Nobody Wants to Be Lonely (Official Video) ft. Christina Aguilera",
-          "channelTitle": "RickyMartinVEVO",
-          "durationSeconds": 251,
-          "youtubeUrl": "https://www.youtube.com/watch?v=KUmrNavXsd0"
-        },
-        {
-          "videoId": "5ihtX86JzmA",
-          "title": "Ricky Martin - She Bangs (Official English Version)",
-          "channelTitle": "RickyMartinVEVO",
-          "durationSeconds": 246,
-          "youtubeUrl": "https://www.youtube.com/watch?v=5ihtX86JzmA"
-        },
-        {
-          "videoId": "dZDj2CnG5dE",
-          "title": "Ricky Martin - The Cup of Life (Official Video)",
-          "channelTitle": "RickyMartinVEVO",
+          "videoId": "cdkSV-mBg0s",
+          "title": "NOI TA CHO EM (OFFICIAL MV 4K) | WILL FT KAITY | 1ST SINGLE - EM CHUA 18 OST",
+          "channelTitle": "Will Official",
           "durationSeconds": 268,
-          "youtubeUrl": "https://www.youtube.com/watch?v=dZDj2CnG5dE"
+          "youtubeUrl": "https://www.youtube.com/watch?v=cdkSV-mBg0s"
         },
         {
-          "videoId": "n8F55puGHIs",
-          "title": "Ricky Martin - Livin' la Vida Loca (Official Video - Spanish)",
-          "channelTitle": "RickyMartinVEVO",
-          "durationSeconds": 223,
-          "youtubeUrl": "https://www.youtube.com/watch?v=n8F55puGHIs"
+          "videoId": "UOpE-hRFPCo",
+          "title": "Tan Cung Noi Nho (TCNN) | Will x Han Sara | Official Music Video",
+          "channelTitle": "Will Official",
+          "durationSeconds": 316,
+          "youtubeUrl": "https://www.youtube.com/watch?v=UOpE-hRFPCo"
         },
         {
-          "videoId": "Wrygid-TGlI",
-          "title": "Ricky Martin - Otra Noche en L.A. (Official Video)",
-          "channelTitle": "RickyMartinVEVO",
-          "durationSeconds": 225,
-          "youtubeUrl": "https://www.youtube.com/watch?v=Wrygid-TGlI"
+          "videoId": "dmnEJwWFHD0",
+          "title": "Tan Cung Noi Nho | Will ft. Anvy | Official Music Video (4K)",
+          "channelTitle": "Will Official",
+          "durationSeconds": 316,
+          "youtubeUrl": "https://www.youtube.com/watch?v=dmnEJwWFHD0"
         },
         {
-          "videoId": "e9jT4azbkME",
-          "title": "Ricky Skaggs - Crying My Heart Out Over You (Official Video)",
-          "channelTitle": "RickySkaggsVEVO",
-          "durationSeconds": 182,
-          "youtubeUrl": "https://www.youtube.com/watch?v=e9jT4azbkME"
-        },
-        {
-          "videoId": "V9xtQsL89ws",
-          "title": "Ricky Martin, Los Ángeles Azules, TINI - Vuelve (Official Video)",
-          "channelTitle": "RickyMartinVEVO",
+          "videoId": "8zH_AQHOqtU",
+          "title": "DIEU GI - WILL ft VSTRA | OFFICIAL MUSIC VIDEO",
+          "channelTitle": "Will Official",
           "durationSeconds": 218,
-          "youtubeUrl": "https://www.youtube.com/watch?v=V9xtQsL89ws"
+          "youtubeUrl": "https://www.youtube.com/watch?v=8zH_AQHOqtU"
         },
         {
-          "videoId": "HQajZ61Ex8E",
-          "title": "Ricky Feb ft. Tri Suaka - Ikhlasku Bahagiamu (Official Music Video)",
-          "channelTitle": "Indo Semar Sakti",
-          "durationSeconds": 388,
-          "youtubeUrl": "https://www.youtube.com/watch?v=HQajZ61Ex8E"
-        },
-        {
-          "videoId": "b1aBRZy3nYI",
-          "title": "Ricky EL- Ukai Langkau Arau (Official Music Video)",
-          "channelTitle": "CAHAYA MANIS MUSIC",
-          "durationSeconds": 319,
-          "youtubeUrl": "https://www.youtube.com/watch?v=b1aBRZy3nYI"
-        },
-        {
-          "videoId": "i36m-VTR_mk",
-          "title": "BIGBUCKZVON - Ricky ( Official Music Video )",
-          "channelTitle": "BIGBUCKZVON",
-          "durationSeconds": 165,
-          "youtubeUrl": "https://www.youtube.com/watch?v=i36m-VTR_mk"
-        },
-        {
-          "videoId": "ME2Hufquz0k",
-          "title": "Wisin - Adrenalina (Official Video) ft. Jennifer Lopez, Ricky Martin",
-          "channelTitle": "wisinofficalVEVO",
-          "durationSeconds": 268,
-          "youtubeUrl": "https://www.youtube.com/watch?v=ME2Hufquz0k"
-        }
-      ],
-      "youtubeLastCheckedAt": "2026-06-07T09:03:35.484Z",
-      "youtubeSource": "YouTube Data API v3"
-    },
-    {
-      "name": "Will (365daband)",
-      "photo": "https://yt3.ggpht.com/y93J0p4N8tA8TTOS_KCMXZExC5bOSdxMfmvEEHfNf5yGuSLRzh4vqrYmX_b21mwSFh0IzTdmfw=s800-c-k-c0x00ffffff-no-rj",
-      "photoVerified": true,
-      "photoSource": "youtube:Will Official",
-      "videos": [
-        {
-          "videoId": "uzUozo1628U",
-          "title": "Will Smith - Switch (Official Music Video)",
-          "channelTitle": "WillSmithVEVO",
-          "durationSeconds": 206,
-          "youtubeUrl": "https://www.youtube.com/watch?v=uzUozo1628U"
-        },
-        {
-          "videoId": "RyzKHpX_DDU",
-          "title": "Will - M pap ka padone w ( Official music video )",
+          "videoId": "k8MjG-ioNMI",
+          "title": "NOI TA CHO EM - Will ft. Willistic (prod. by Darrys) [REMAKE]",
           "channelTitle": "Will Official",
-          "durationSeconds": 211,
-          "youtubeUrl": "https://www.youtube.com/watch?v=RyzKHpX_DDU"
+          "durationSeconds": 247,
+          "youtubeUrl": "https://www.youtube.com/watch?v=k8MjG-ioNMI"
         },
         {
-          "videoId": "tWR-UYfEoTk",
-          "title": "Will - Moblije Mawozo (Official Video)",
+          "videoId": "NWZFGWVMduQ",
+          "title": "KHI TA CO NHAU (OFFICIAL MV FULL) | WILL FT KAITY",
           "channelTitle": "Will Official",
-          "durationSeconds": 285,
-          "youtubeUrl": "https://www.youtube.com/watch?v=tWR-UYfEoTk"
+          "durationSeconds": 245,
+          "youtubeUrl": "https://www.youtube.com/watch?v=NWZFGWVMduQ"
         },
         {
-          "videoId": "W-w3WfgpcGg",
-          "title": "Bruno Mars - It Will Rain (Official Music Video)",
-          "channelTitle": "Bruno Mars",
-          "durationSeconds": 267,
-          "youtubeUrl": "https://www.youtube.com/watch?v=W-w3WfgpcGg"
+          "videoId": "UuL-AtjhYGE",
+          "title": "Em Dang Lam Gi Day? | Will x R.Tee | Official Music Video 4K",
+          "channelTitle": "Will Official",
+          "durationSeconds": 286,
+          "youtubeUrl": "https://www.youtube.com/watch?v=UuL-AtjhYGE"
         },
         {
-          "videoId": "nIjVuRTm-dc",
-          "title": "Maroon 5 - She Will Be Loved (Official Music Video)",
-          "channelTitle": "Maroon5VEVO",
+          "videoId": "jyZKKP1nYW4",
+          "title": "Hai The Gioi - Will | Official Video Lyrics",
+          "channelTitle": "Will Official",
           "durationSeconds": 269,
-          "youtubeUrl": "https://www.youtube.com/watch?v=nIjVuRTm-dc"
+          "youtubeUrl": "https://www.youtube.com/watch?v=jyZKKP1nYW4"
         },
         {
-          "videoId": "rGKfrgqWcv0",
-          "title": "Mumford & Sons - I Will Wait (Official Music Video)",
-          "channelTitle": "MumfordAndSonsVEVO",
-          "durationSeconds": 305,
-          "youtubeUrl": "https://www.youtube.com/watch?v=rGKfrgqWcv0"
+          "videoId": "R5i3tFC0NQo",
+          "title": "Em Chua 18 | WILL - LOU HOANG - KAITY NGUYEN | Em Chua 18 OST | Official Music Video",
+          "channelTitle": "YEAH1 MUSIC",
+          "durationSeconds": 215,
+          "youtubeUrl": "https://www.youtube.com/watch?v=R5i3tFC0NQo"
         },
         {
-          "videoId": "5atiLWT4emI",
-          "title": "Foreigner - Say You Will (Official Music Video)",
-          "channelTitle": "RHINO",
-          "durationSeconds": 267,
-          "youtubeUrl": "https://www.youtube.com/watch?v=5atiLWT4emI"
-        },
-        {
-          "videoId": "9pm4qHWixz8",
-          "title": "P.O.D. - Will You (Official Music Video)",
-          "channelTitle": "P.O.D. Videos",
-          "durationSeconds": 225,
-          "youtubeUrl": "https://www.youtube.com/watch?v=9pm4qHWixz8"
-        },
-        {
-          "videoId": "ak4Ti54Y6rY",
-          "title": "Evanescence – Who Will You Follow (Official Music Video)",
-          "channelTitle": "Evanescence",
-          "durationSeconds": 240,
-          "youtubeUrl": "https://www.youtube.com/watch?v=ak4Ti54Y6rY"
-        },
-        {
-          "videoId": "3JWTaaS7LdU",
-          "title": "Whitney Houston - I Will Always Love You (Official 4K Video)",
-          "channelTitle": "whitneyhoustonVEVO",
-          "durationSeconds": 274,
-          "youtubeUrl": "https://www.youtube.com/watch?v=3JWTaaS7LdU"
-        },
-        {
-          "videoId": "iAP9AF6DCu4",
-          "title": "The Calling - Wherever You Will Go (Official Video)",
-          "channelTitle": "TheCallingVEVO",
-          "durationSeconds": 207,
-          "youtubeUrl": "https://www.youtube.com/watch?v=iAP9AF6DCu4"
-        },
-        {
-          "videoId": "-tJYN-eG1zk",
-          "title": "Queen - We Will Rock You (Official Video)",
-          "channelTitle": "Queen Official",
-          "durationSeconds": 135,
-          "youtubeUrl": "https://www.youtube.com/watch?v=-tJYN-eG1zk"
-        },
-        {
-          "videoId": "5Kzh3Sz8kFs",
-          "title": "Ian Van Dahl - Will I  (OFFICIAL VIDEO)",
-          "channelTitle": "ianvandahlOFFICIAL",
-          "durationSeconds": 217,
-          "youtubeUrl": "https://www.youtube.com/watch?v=5Kzh3Sz8kFs"
-        },
-        {
-          "videoId": "MdVYF-meqIk",
-          "title": "케이윌 (K.Will) - 사랑이 시작돼요 이렇게 This Is How Love Begins Official M/V",
-          "channelTitle": "GENIE MUSIC",
+          "videoId": "gpgLMWMHCTE",
+          "title": "[OFFICIAL MV] NEU NHU KHONG THE NOI NEU NHU - WILL 365DABAND",
+          "channelTitle": "Studio68",
           "durationSeconds": 266,
-          "youtubeUrl": "https://www.youtube.com/watch?v=MdVYF-meqIk"
+          "youtubeUrl": "https://www.youtube.com/watch?v=gpgLMWMHCTE"
         },
         {
-          "videoId": "kYtGl1dX5qI",
-          "title": "will.i.am - Scream & Shout ft. Britney Spears",
-          "channelTitle": "williamVEVO",
-          "durationSeconds": 292,
-          "youtubeUrl": "https://www.youtube.com/watch?v=kYtGl1dX5qI"
+          "videoId": "pnEBCayEldo",
+          "title": "365daband - NO LOVE NO LIFE (Noi Anh Khong Thuoc ve)",
+          "channelTitle": "Studio68",
+          "durationSeconds": 279,
+          "youtubeUrl": "https://www.youtube.com/watch?v=pnEBCayEldo"
         },
         {
-          "videoId": "WbrSLLv0AlA",
-          "title": "Will Young - Leave Right Now",
-          "channelTitle": "willyoungVEVO",
-          "durationSeconds": 216,
-          "youtubeUrl": "https://www.youtube.com/watch?v=WbrSLLv0AlA"
-        },
-        {
-          "videoId": "PdUiCJnRptk",
-          "title": "[MV] 케이윌(K.will) - 이러지마 제발 (Please don't...)",
-          "channelTitle": "STARSHIP",
-          "durationSeconds": 228,
-          "youtubeUrl": "https://www.youtube.com/watch?v=PdUiCJnRptk"
-        },
-        {
-          "videoId": "3E-_Sy32PG8",
-          "title": "Central Cee - I Will [Music Video]",
-          "channelTitle": "Central Cee",
-          "durationSeconds": 151,
-          "youtubeUrl": "https://www.youtube.com/watch?v=3E-_Sy32PG8"
-        },
-        {
-          "videoId": "KlJd_bI7DVo",
-          "title": "Joyner Lucas - Will (ADHD)",
-          "channelTitle": "Joyner Lucas",
-          "durationSeconds": 240,
-          "youtubeUrl": "https://www.youtube.com/watch?v=KlJd_bI7DVo"
+          "videoId": "3lzzeAHeC2c",
+          "title": "365 daband OH MY LOVE M/V [Official]",
+          "channelTitle": "Studio68",
+          "durationSeconds": 260,
+          "youtubeUrl": "https://www.youtube.com/watch?v=3lzzeAHeC2c"
         }
       ],
-      "youtubeLastCheckedAt": "2026-06-07T09:03:36.159Z",
-      "youtubeSource": "YouTube Data API v3"
+      "youtubeLastCheckedAt": "2026-06-07T13:10:00.000Z",
+      "youtubeSource": "manual:verified-vietnamese-videos"
     },
     {
       "name": "Jun Phạm",
@@ -12514,5 +11877,5 @@
       "youtubeSource": "YouTube Data API v3"
     }
   ],
-  "updatedAt": "2026-06-07T09:11:44.526Z"
+  "updatedAt": "2026-06-07T13:10:26.388Z"
 }

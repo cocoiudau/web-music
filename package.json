@@ -1,5 +1,8 @@
 {
   "type": "module",
+  "engines": {
+    "node": ">=24.14.1 <25.0.0"
+  },
   "scripts": {
     "start": "node server.mjs",
     "dev": "node server.mjs",

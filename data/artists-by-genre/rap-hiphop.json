@@ -2788,7 +2788,9 @@
     },
     {
       "name": "G-Ducky",
-      "photoLookupDisabled": true,
+      "photo": "https://cdn-images.dzcdn.net/images/artist/369318e8667446cb14d035dc2c529816/1000x1000-000000-80-0-0.jpg",
+      "photoVerified": true,
+      "photoSource": "deezer:exact-name",
       "videos": [
         {
           "videoId": "vnushZ2Af18",

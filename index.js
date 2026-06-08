@@ -1651,11 +1651,11 @@ function hasPlayableArtistVideos(artist) {
 }
 
 function getDatabaseArtistSongs(artistName, limit) {
-  const target = normalizeSearchText(artistName);
+  const targets = getArtistMatchingAliases(artistName).map(normalizeSearchText).filter(Boolean);
   return loadArtistSongDatabase().then((db) => {
     const artist = (db.artists || []).find((item) => {
-      const aliases = [item.name].concat(item.aliases || []).map(normalizeSearchText);
-      return aliases.some((alias) => alias && (alias === target || alias.includes(target) || target.includes(alias)));
+      const aliases = getArtistMatchingAliases(item.name).concat(item.aliases || []).map(normalizeSearchText);
+      return aliases.some((alias) => alias && targets.some((target) => artistNameAliasMatches(alias, target)));
     });
     if (!artist) return fetchMusicDatabaseVideos(artistName, limit || 120);
 
@@ -3052,6 +3052,28 @@ function getArtistDisplayName(artist) {
   return rawName.replace(/\s*\((?:band|nhóm nhạc)\)\s*$/i, "").trim() || rawName;
 }
 
+function getArtistMatchingAliases(artistName) {
+  const rawName = String(artistName || "").trim();
+  const aliases = [rawName, getArtistDisplayName(rawName)];
+  const parenthetical = rawName.match(/\(([^)]+)\)/);
+  if (parenthetical) aliases.push(parenthetical[1]);
+
+  const normalized = normalizeSearchText(rawName);
+  if (normalized === "min" || normalized === "min st 319") {
+    aliases.push("MIN", "Min", "Min (ST.319)", "ST.319");
+  }
+
+  return Array.from(new Set(aliases.map((alias) => String(alias || "").trim()).filter(Boolean)));
+}
+
+function artistNameAliasMatches(alias, target) {
+  if (!alias || !target) return false;
+  if (alias === target) return true;
+  if (target === "min") return alias === "min" || alias.startsWith("min ");
+  if (alias === "min") return target === "min" || target.startsWith("min ");
+  return (target.length >= 4 && alias.includes(target)) || (alias.length >= 4 && target.includes(alias));
+}
+
 function getArtistSongCount(artist, sourceIndex) {
   if (artist && artist.songCount) return artist.songCount;
   return Math.max(12, 30 - (sourceIndex % 11) - Math.floor(sourceIndex / 7));
@@ -3138,7 +3160,6 @@ function renderArtistDetailHero(artistName) {
         </button>
       </div>
     </div>
-    <button class="yt-back-btn artist-refresh-btn" type="button" onclick="refreshCurrentArtistSongs()">Refresh</button>
   `;
   ensureArtistPhotoLoaded(index, 0);
 }
@@ -3209,7 +3230,7 @@ function loadArtistSongsFromYouTube(artistName, forceReload) {
   const list = document.getElementById("artistSongsList");
   currentArtistSongsName = artistName;
   const cacheKey =
-    "yt_artist_songs_music_only_v7_" +
+    "yt_artist_songs_music_only_v9_" +
     artistName
       .toLowerCase()
       .normalize("NFD")
@@ -3268,7 +3289,7 @@ function fetchArtistYouTubeCandidates(artistName) {
 
 function filterArtistSongVideos(items, artistName, limit) {
   const artistKey = normalizeSearchText(artistName);
-  const aliases = getArtistAliases(artistName).map(normalizeSearchText);
+  const aliases = getArtistAliases(artistName).concat(getArtistMatchingAliases(artistName)).map(normalizeSearchText);
   const aliasMatches = (value) => aliases.some((alias) => alias && value.includes(alias)) || (artistKey && value.includes(artistKey));
 
   const scored = uniqueVideosById(items)
@@ -3574,7 +3595,7 @@ function isLikelyWrongArtistPhoto(url, artistName) {
   if (!imageText) return false;
 
   const targetAliases = getArtistAliases(artistName).map(normalizeArtistLookupText).filter((alias) => alias.length >= 4);
-  const targetMatches = targetAliases.some((alias) => imageText.includes(alias.replace(/\s+/g, " ")) || imageText.includes(alias.replace(/\s+/g, "")));
+  const targetMatches = targetAliases.some((alias) => artistAliasAppearsInImageText(imageText, alias));
 
   return dbArtists.some((artist) => {
     const otherName = artist && artist.name;
@@ -3583,11 +3604,16 @@ function isLikelyWrongArtistPhoto(url, artistName) {
       .map(normalizeArtistLookupText)
       .filter((alias) => alias.length >= 4)
       .some((alias) => {
-        const spaced = alias.replace(/\s+/g, " ");
-        const compact = alias.replace(/\s+/g, "");
-        return (imageText.includes(spaced) || imageText.includes(compact)) && !targetMatches;
+        return artistAliasAppearsInImageText(imageText, alias) && !targetMatches;
       });
   });
+}
+
+function artistAliasAppearsInImageText(imageText, alias) {
+  const spaced = alias.replace(/\s+/g, " ");
+  const compact = alias.replace(/\s+/g, "");
+  const hasWordGap = /\s/.test(spaced);
+  return (hasWordGap && imageText.includes(spaced)) || (compact.length >= 6 && imageText.includes(compact));
 }
 
 function isUsableArtistPortrait(url, allowSongThumbnail, artistName) {

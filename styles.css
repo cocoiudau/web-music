@@ -1955,8 +1955,8 @@ body {
 }
 
 .search-icon-btn {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1974,8 +1974,9 @@ body {
 }
 
 .search-icon {
-  font-size: 15px;
-  opacity: 0.6;
+  width: 25px;
+  height: 25px;
+  opacity: 0.78;
   flex-shrink: 0;
 }
 
@@ -2775,7 +2776,7 @@ body {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-height: 42px;
   padding: 0 14px;
   border-radius: 8px;
@@ -3591,6 +3592,13 @@ body {
 .recent-song-row:hover {
   background: rgba(255, 255, 255, 0.07);
   transform: translateX(2px);
+}
+
+.artist-search-icon {
+  width: 23px;
+  height: 23px;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .chart-row.is-playing {
