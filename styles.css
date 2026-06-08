@@ -4776,9 +4776,24 @@ body.light-theme-mode .lyrics-close-btn {
     margin-left: 0;
   }
 
-  .header-upgrade-btn,
-  .btn-login-header {
+  .header-upgrade-btn {
     display: none !important;
+  }
+
+  .btn-login-header {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 72px !important;
+    height: 42px !important;
+    min-width: 72px !important;
+    min-height: 42px !important;
+    padding: 0 8px !important;
+    border-radius: 999px !important;
+    font-size: 10px !important;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
   }
 
   .header-btn {
@@ -4817,10 +4832,11 @@ body.light-theme-mode .lyrics-close-btn {
     height: 72px;
     min-height: 0;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     align-items: center;
-    gap: 4px;
-    overflow-x: auto;
+    gap: 5px;
+    overflow-x: hidden;
     overflow-y: hidden;
     z-index: 10000;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -4841,18 +4857,15 @@ body.light-theme-mode .lyrics-close-btn {
   }
 
   .sidebar-menu {
-    flex-direction: row;
-    gap: 4px;
-    padding: 0;
-    flex-shrink: 0;
+    display: contents;
   }
 
   .sidebar-menu a,
   .sidebar-playlist {
-    min-width: 48px;
-    width: 48px;
-    max-width: 48px;
-    flex: 0 0 48px;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    flex: none;
     height: 56px;
     margin: 0;
     padding: 7px 6px;
@@ -4860,7 +4873,7 @@ body.light-theme-mode .lyrics-close-btn {
     justify-content: center;
     gap: 4px;
     border-radius: 8px;
-    font-size: 8.8px;
+    font-size: 9px;
     line-height: 1.15;
     text-align: center;
     white-space: nowrap;
