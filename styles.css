@@ -4719,3 +4719,481 @@ body.light-theme-mode .lyrics-close-btn {
 .t100-retry-btn:hover {
   opacity: 0.85;
 }
+
+/* ============================
+   MOBILE APP LAYOUT
+   ============================ */
+@media (max-width: 820px) {
+  html,
+  body {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  body {
+    display: block;
+    background: #160b31;
+    font-size: 14px;
+  }
+
+  .top-header {
+    left: 0;
+    height: 64px;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .header-nav {
+    display: none;
+  }
+
+  .header-search {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    height: 44px;
+    padding: 0 12px;
+  }
+
+  .search-icon-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .search-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .header-search input {
+    font-size: 13px;
+  }
+
+  .header-actions {
+    flex-shrink: 0;
+    gap: 6px;
+    margin-left: 0;
+  }
+
+  .header-upgrade-btn,
+  .btn-login-header {
+    display: none !important;
+  }
+
+  .header-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .user-info-header {
+    max-width: 42px;
+    min-width: 42px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .user-name-text,
+  .vip-badge {
+    display: none !important;
+  }
+
+  .settings-dropdown,
+  .account-dropdown {
+    position: fixed;
+    top: 70px;
+    right: 10px;
+    width: min(340px, calc(100vw - 20px));
+    min-width: 0;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 72px;
+    min-height: 0;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    z-index: 10000;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 0;
+    background: rgba(18, 12, 36, 0.98);
+    backdrop-filter: blur(18px);
+    scrollbar-width: none;
+  }
+
+  .sidebar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sidebar-logo,
+  .sidebar-divider,
+  .sidebar-auth-card {
+    display: none !important;
+  }
+
+  .sidebar-menu {
+    flex-direction: row;
+    gap: 4px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .sidebar-menu a,
+  .sidebar-playlist {
+    min-width: 48px;
+    width: 48px;
+    max-width: 48px;
+    flex: 0 0 48px;
+    height: 56px;
+    margin: 0;
+    padding: 7px 6px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    border-radius: 8px;
+    font-size: 8.8px;
+    line-height: 1.15;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transform: none !important;
+  }
+
+  .sidebar-playlist svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .sidebar-menu a.active::before,
+  .sidebar-playlist.active::before {
+    left: 50%;
+    top: 4px;
+    width: 24px;
+    height: 3px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+  }
+
+  .main-content {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 64px;
+    padding-bottom: 92px;
+    overflow-x: hidden;
+  }
+
+  #homePage,
+  .artist-page,
+  .chart-page,
+  .recent-page {
+    padding-bottom: 104px;
+  }
+
+  .home-ad-banner {
+    width: calc(100% - 24px);
+    min-height: 150px;
+    margin: 14px 12px 18px;
+    padding: 20px 18px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    background-position: center;
+  }
+
+  .home-ad-brand {
+    font-size: 18px;
+  }
+
+  .home-ad-copy {
+    text-align: left;
+  }
+
+  .home-ad-copy strong {
+    font-size: 27px;
+    line-height: 1.08;
+  }
+
+  .home-ad-copy span {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .home-ad-banner .home-ad-action-btn {
+    width: fit-content;
+    min-height: 40px;
+    padding: 0 16px;
+  }
+
+  .home-ad-close {
+    top: 8px;
+    right: 8px;
+  }
+
+  .section-header {
+    padding: 10px 14px 6px;
+  }
+
+  .section-header h2 {
+    margin: 0;
+    font-size: 20px;
+  }
+
+  .slider-controls button {
+    width: 38px;
+    height: 38px;
+  }
+
+  .home-suggest-slider {
+    grid-auto-columns: minmax(252px, 78vw);
+    gap: 12px;
+    padding: 8px 14px 22px;
+  }
+
+  .suggest-card {
+    min-height: 132px;
+    padding: 16px;
+  }
+
+  .suggest-card strong {
+    font-size: 17px;
+  }
+
+  .topics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 8px 14px 24px;
+  }
+
+  .topic-card {
+    height: 96px;
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .topic-card span {
+    font-size: 14px;
+  }
+
+  .library-grid,
+  .top100-grid {
+    grid-template-columns: 1fr;
+    padding: 16px 14px 100px;
+    gap: 12px;
+  }
+
+  .library-card {
+    padding: 20px 16px;
+  }
+
+  .top100-section {
+    padding: 14px;
+  }
+
+  .top100-card {
+    min-height: 132px;
+  }
+
+  .youtube-page-header {
+    padding: 16px 14px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .youtube-list {
+    padding: 10px 10px 108px;
+  }
+
+  .yt-song-item,
+  .top100-song-item {
+    grid-template-columns: 28px 76px 1fr;
+    gap: 10px;
+    padding: 9px 8px;
+  }
+
+  .yt-song-thumb {
+    width: 76px;
+    height: 44px;
+    border-radius: 6px;
+  }
+
+  .yt-song-title {
+    font-size: 13px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .yt-song-channel {
+    font-size: 11px;
+  }
+
+  .artist-page {
+    padding: 14px 10px 104px;
+  }
+
+  .artist-hero,
+  .artist-ad-banner {
+    min-height: 210px;
+    margin: 0 0 12px;
+    padding: 44px 16px 16px;
+    border-radius: 8px;
+  }
+
+  .artist-ad-copy h1,
+  .artist-hero h1 {
+    font-size: 25px;
+    line-height: 1.12;
+  }
+
+  .artist-ad-copy p,
+  .artist-hero p {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .artist-ad-btn {
+    min-height: 40px;
+    padding: 0 16px;
+  }
+
+  .artist-panel-head {
+    padding: 14px;
+  }
+
+  .artist-panel-head h2 {
+    font-size: 18px;
+  }
+
+  .artist-toolbar {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .artist-search-box {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .artist-genre-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .artist-genre-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .artist-genre-tabs button {
+    flex: 0 0 auto;
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+
+  .artist-ranking-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .artist-card {
+    min-height: 196px;
+    padding: 14px 8px 12px;
+  }
+
+  .artist-card-avatar {
+    width: 78px;
+    height: 78px;
+  }
+
+  .artist-card-name {
+    min-height: 36px;
+    font-size: 14px;
+  }
+
+  .artist-follow-btn {
+    min-height: 38px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+
+  .artist-detail-hero {
+    min-height: 300px;
+    padding: 20px 14px;
+  }
+
+  .artist-detail-avatar {
+    width: 112px;
+    height: 112px;
+  }
+
+  .artist-detail-copy h1 {
+    font-size: 30px;
+  }
+
+  .artist-detail-copy p {
+    font-size: 13px;
+  }
+
+  #artistSongsPage .artist-songs-header {
+    display: none;
+  }
+
+  .chart-hero,
+  .recent-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .chart-row,
+  .recent-song-row {
+    grid-template-columns: 34px 50px 1fr;
+    gap: 10px;
+    padding: 8px 10px;
+  }
+
+  .player-bar {
+    bottom: 72px;
+    height: 124px;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .home-suggest-slider {
+    grid-auto-columns: minmax(232px, 82vw);
+  }
+
+  .topics-grid,
+  .artist-ranking-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .topic-card {
+    height: 88px;
+  }
+
+  .artist-card {
+    min-height: 188px;
+  }
+
+  .artist-card-avatar {
+    width: 72px;
+    height: 72px;
+  }
+}
